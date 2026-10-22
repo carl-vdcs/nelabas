@@ -19,3 +19,7 @@ Test local : `python3 -m http.server 8765` puis http://localhost:8765/
 - Remplacer les portraits pixel procéduraux par les assets générés (fonction `portrait()` dans index.html)
 - OG image 1200×630
 - Page « Sources » autonome (actuellement une feuille dans le jeu)
+
+## Hébergement
+GitHub Pages (branche main, racine) → nelabas.ecarlitobsm.com via CNAME chez Hostinger.
+Chaque push sur main redéploie.
