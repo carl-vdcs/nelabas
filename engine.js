@@ -186,6 +186,7 @@ const SURNAMES = {
   reunion: ['Hoarau', 'Payet', 'Grondin', 'Boyer', 'Dijoux', 'Técher', 'Fontaine', 'Maillot', 'Lebon', 'Robert', 'Rivière', 'Bègue', 'Turpin', 'Vienne', 'Ethève', 'Ramassamy', 'Virapoullé', 'Mounoussamy'],
   mayotte: ['Saïd', 'Ali', 'Abdou', 'Madi', 'Bacar', 'Ahamada', 'Attoumani', 'Boinali', 'Hamidou', 'Soilihi', 'Chanfi', 'Mohamed'],
 };
+export const aVille = v => /^Le /.test(v) ? 'au ' + v.slice(3) : /^Les /.test(v) ? 'aux ' + v.slice(4) : 'à ' + v;
 export function makeName(cl, sex) { const n = NAMES[cl] || NAMES.antilles; return pick(n[sex]) + ' ' + pick(SURNAMES[cl] || SURNAMES.antilles); }
 
 export const ROOTS = {
@@ -320,7 +321,7 @@ export function finances() {
     S.income = incomeAt(c, S.pct); S.jobY++;
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
-  else S.income = a >= 18 ? incomeAt(c, 0.08) * 0.6 : 0; // RSA / aides / famille
+  else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
   S.famIncome = Math.max(incomeAt(c, 0.5) * 0.45, incomeAt(c, S.famPct) * ((S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0.55) + (S.fam.mom.alive ? 0 : -0.3))); // plancher ≈ RSA + prestations
   const priceK = 1 + (c.price || 0) / 100 * 0.35; // part alimentaire ~35 % du budget des ménages modestes
   const spend = S.income * clamp(0.9 - (S.pct - 0.5) * 0.3, 0.55, 1.05) * priceK;

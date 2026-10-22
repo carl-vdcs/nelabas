@@ -1,7 +1,7 @@
 // Né là-bas — événements, décisions, pauses.
 // Format : { id, a:[min,max], t:['GLP',...] (territoires, optionnel), c:()=>cond, w:poids, once, gap, run:()=>texte|{t,k,f} }
 // k : 'ev' neutre, 'good', 'bad', 'loss' (deuil). f : fait sourcé affiché sous la ligne.
-import { S, C, TBY, eff, log, chance, pick, ri, rnd, clamp, incomeAt, JOBS, WORKING, lifeTable, makeName, die } from './engine.js';
+import { S, C, TBY, eff, log, chance, pick, ri, rnd, clamp, incomeAt, JOBS, WORKING, lifeTable, makeName, die, aVille } from './engine.js';
 
 const fem = () => S.sex === 'F';
 const sx = (m, f) => fem() ? f : m;
@@ -30,7 +30,7 @@ function unemp() { const c = C(); return (S.age < 30 ? c.youthUnemp : c.unemp) /
 // ---------- ÉVÉNEMENTS ----------
 export const EVENTS = [
   // --- naissance / petite enfance ---
-  { id: 'birth_cert', a: [0, 0], once: 1, w: 1000, run: () => { const c = C(); const d = new Date(); const mom = S.fam.mom, dad = S.fam.dad; const sib = S.fam.older ? `Tu as déjà ${S.fam.older} ${S.fam.older > 1 ? 'aînés' : 'aîné·e'}.` : 'Tu es le premier enfant.'; const dadTxt = dad.absent ? 'Ton père n’est pas là.' : `Ton père, ${dad.name}, ${dad.age} ans, est ${JOBS[dad.job].n}.`; return { t: `En ${MOIS[d.getMonth()]} ${d.getFullYear()}, tu nais ${fem() ? 'fille' : 'garçon'} à ${S.city}, ${isDia() ? `en Hexagone, dans une famille ${TBY[orig()].gentF}` : c.nom === 'La Réunion' ? 'à La Réunion' : 'en ' + c.nom}, parmi ${QTXT[S.q - 1]}. Ta mère, ${mom.name}, ${mom.age} ans, est ${JOBS[mom.job].n}. ${dadTxt} ${sib} Racines : ${S.roots}. Religion de la famille : ${REL_NM[S.rel]}.`, f: c.id === 'DIA' ? 'Environ 365 000 personnes nées dans un DROM vivent en Hexagone, deux tiers des Antillais en Île-de-France (INSEE)' : `${c.b.toLocaleString('fr')} naissances par an ${c.article} (INSEE 2024)` }; } },
+  { id: 'birth_cert', a: [0, 0], once: 1, w: 1000, run: () => { const c = C(); const d = new Date(); const mom = S.fam.mom, dad = S.fam.dad; const sib = S.fam.older ? `Tu as déjà ${S.fam.older} ${S.fam.older > 1 ? 'aînés' : 'aîné·e'}.` : 'Tu es le premier enfant.'; const dadTxt = dad.absent ? 'Ton père n’est pas là.' : `Ton père, ${dad.name}, ${dad.age} ans, est ${JOBS[dad.job].n}.`; return { t: `En ${MOIS[d.getMonth()]} ${d.getFullYear()}, tu nais ${fem() ? 'fille' : 'garçon'} ${aVille(S.city)}, ${isDia() ? `en Hexagone, dans une famille ${TBY[orig()].gentF}` : c.nom === 'La Réunion' ? 'à La Réunion' : 'en ' + c.nom}, parmi ${QTXT[S.q - 1]}. Ta mère, ${mom.name}, ${mom.age} ans, est ${JOBS[mom.job].n}. ${dadTxt} ${sib} Racines : ${S.roots}. Religion de la famille : ${REL_NM[S.rel]}.`, f: c.id === 'DIA' ? 'Environ 365 000 personnes nées dans un DROM vivent en Hexagone, deux tiers des Antillais en Île-de-France (INSEE)' : `${c.b.toLocaleString('fr')} naissances par an ${c.article} (INSEE 2024)` }; } },
   { id: 'preterm', a: [0, 0], once: 1, c: () => isDrom(), w: 2, run: () => { eff({ hl: -5 }); return { t: 'Tu nais prématuré·e. Quelques semaines en néonatologie.', k: 'bad', f: `Mortalité infantile ${C().article} : ${C().im} ‰, contre 3,5 ‰ en Hexagone (INSEE 2024)` }; } },
   { id: 'vax', a: [0, 1], once: 1, w: 3, run: () => { eff({ hl: 2 }); return 'Vaccins à la PMI. La salle d’attente est pleine.'; } },
   { id: 'steps', a: [1, 1], once: 1, w: 3, run: () => { eff({ h: 2 }); return `Premiers pas. ${parW().charAt(0).toUpperCase() + parW().slice(1)} applaudit.`; } },
@@ -38,7 +38,7 @@ export const EVENTS = [
   { id: 'mamie', a: [2, 10], gap: 3, c: () => isDrom(), w: 3, run: () => { eff({ so: 3, h: 2 }); return pick([orig() === 'REU' ? 'Les week-ends chez ta grand-mère dans les Hauts. Jardin, poules, letchis.' : orig() === 'MYT' ? 'Les week-ends chez ta grand-mère au village. Manioc, bananes, le lagon.' : 'Les week-ends chez ta grand-mère, à la campagne. Jardin créole, poules, dombrés.', 'Ta grand-mère te raconte comment c’était avant. Tu ne comprends pas tout.', orig() === 'MYT' ? 'Vendredi : la mosquée, puis le repas en famille.' : 'Dimanche : messe, puis le repas qui dure tout l’après-midi.']); } },
   { id: 'mamie_far', a: [2, 12], gap: 3, c: () => isDia(), w: 3, run: () => { eff({ so: 1, h: 1 }); return pick(['Tes grands-parents, tu les vois sur WhatsApp. Ils demandent quand tu viens.', 'Un colis de là-bas : du sirop, des épices, une chemise trop grande.', 'Au téléphone, mamie parle créole et ta mère répond en français.']); } },
   { id: 'kid_water', a: [1, 12], gap: 2, t: ['MYT', 'GUF'], w: 4, c: () => S.q <= 3, run: () => { eff({ hl: -3, h: -2 }); return { t: pick(['Coupure d’eau. Les bidons s’alignent devant la maison.', 'Tours d’eau : l’eau arrive un jour sur trois. On remplit tout ce qu’on peut.']), k: 'bad', f: C().id === 'MYT' ? 'Un Mahorais sur trois n’a pas l’eau courante (INSEE)' : 'En Guyane, 15 % des logements n’ont pas accès à l’eau potable (approx, à sourcer)' }; } },
-  { id: 'cyclone_kid', a: [1, 14], gap: 8, c: () => isDrom() && C().cyc > 0 && chance(C().cyc * 2), w: 3, run: () => { eff({ h: -3 }); return { t: pick(['Alerte violette. Volets cloués, bougies, radio. Le vent toute la nuit.', 'Le cyclone est passé à côté. Le voisin a perdu son toit.']), k: 'bad', f: 'Irma (2017) : rafales à 360 km/h, 1,26 Md€ de dégâts assurés, la catastrophe la plus coûteuse de l’histoire des outre-mer' }; } },
+  { id: 'cyclone_kid', a: [1, 14], gap: 8, c: () => isDrom() && C().cyc > 0 && chance(C().cyc * 2), w: 3, run: () => { S.flags.rainY = S.age; eff({ h: -3 }); return { t: pick(['Alerte violette. Volets cloués, bougies, radio. Le vent toute la nuit.', 'Le cyclone est passé à côté. Le voisin a perdu son toit.']), k: 'bad', f: 'Irma (2017) : rafales à 360 km/h, 1,26 Md€ de dégâts assurés, la catastrophe la plus coûteuse de l’histoire des outre-mer' }; } },
   { id: 'chlor_garden', a: [2, 12], once: 1, t: ['GLP', 'MTQ'], c: () => S.flags.chlor, w: 4, run: () => { return { t: pick(['Tu manges les ignames et les dachines du jardin. Personne ne sait encore ce qu’il y a dans la terre.', 'Les œufs des poules de la cour, les légumes-racines du voisin. Tout est bon.']), f: 'Le chlordécone, interdit en France en 1990, a été autorisé aux Antilles jusqu’en 1993 ; il reste dans les sols jusqu’à 600 ans' }; } },
   // --- école ---
   { id: 'school_start', a: [3, 3], once: 1, w: 9, run: () => { eff({ so: 2 }); return 'Première rentrée en maternelle.'; } },
@@ -46,8 +46,8 @@ export const EVENTS = [
   { id: 'grades', a: [7, 17], gap: 2, w: 3, run: () => { const good = chance(clamp(0.35 + (S.st.sm - 50) / 100 + (S.q - 3) * 0.08, 0.1, 0.85)); eff(good ? { sm: 3, h: 2 } : { h: -2 }); return good ? 'Bons résultats. Félicitations du conseil.' : 'Résultats moyens. « Peut mieux faire ».'; } },
   { id: 'bully', a: [8, 15], gap: 2, c: () => (S.flags.bullyN || 0) < 2, w: 2, run: () => { S.flags.bullyN = (S.flags.bullyN || 0) + 1; eff({ h: -6, so: -3 }); return { t: isDia() ? 'Moqueries sur ton nom, ta couleur, ton accent quand tu reviens de vacances.' : 'Harcèlement au collège.', k: 'bad' }; } },
   { id: 'bff', a: [6, 20], once: 1, w: 2, run: () => { const n = makeName(TBY[orig()].nm, chance(0.5) ? S.sex : sx('F', 'M')).split(' ')[0]; S.flags.bff = n; eff({ so: 5, h: 3 }); return `${n} devient ton·ta meilleur·e ami·e.`; } },
-  { id: 'bele', a: [6, 16], once: 1, c: () => isDrom(), w: 3, run: () => { const h = pick(({ GLP: ['gwoka', 'football', 'danse'], MTQ: ['bèlè', 'football', 'tambour'], GUF: ['football', 'danse', 'basket'], REU: ['maloya', 'football', 'moringue'], MYT: ['football', 'debaa', 'danse'] })[S.cur]); S.hobbies.push({ id: h, lv: 1 }); eff({ h: 4, so: 2 }); return `Tu commences ${h === 'football' ? 'le football au club du quartier' : h === 'danse' ? 'la danse' : 'le ' + h}.`; } },
-  { id: 'hobby_dia', a: [6, 16], once: 1, c: () => isDia(), w: 3, run: () => { const h = pick(['football', 'danse', 'musique', 'basket']); S.hobbies.push({ id: h, lv: 1 }); eff({ h: 4, so: 2 }); return `Tu commences ${h === 'football' ? 'le foot' : h === 'basket' ? 'le basket' : 'la ' + h} à la MJC.`; } },
+  { id: 'bele', a: [8, 16], once: 1, c: () => isDrom() && !S.hobbies.length, w: 3, run: () => { const h = pick(({ GLP: ['gwoka', 'football', 'danse'], MTQ: ['bèlè', 'football', 'tambour'], GUF: ['football', 'danse', 'basket'], REU: ['maloya', 'football', 'moringue'], MYT: ['football', 'debaa', 'danse'] })[S.cur]); S.hobbies.push({ id: h, lv: 1 }); eff({ h: 4, so: 2 }); return `Tu commences ${h === 'football' ? 'le football au club du quartier' : h === 'danse' ? 'la danse' : 'le ' + h}.`; } },
+  { id: 'hobby_dia', a: [8, 16], once: 1, c: () => isDia() && !S.hobbies.length, w: 3, run: () => { const h = pick(['football', 'danse', 'musique', 'basket']); S.hobbies.push({ id: h, lv: 1 }); eff({ h: 4, so: 2 }); return `Tu commences ${h === 'football' ? 'le foot' : h === 'basket' ? 'le basket' : 'la ' + h} à la MJC.`; } },
   { id: 'kid_dep', a: [13, 17], once: 1, w: 2, c: () => chance(C().dep / 100 * 0.5), run: () => { S.flags.depress = 1; eff({ h: -10, so: -4 }); return { t: 'Tu dors mal, tu ne sors plus. Personne ne met de mot dessus.', k: 'bad', f: `${C().dep} % des 15-29 ans ${isDia() ? 'en Hexagone' : C().article} présentent des symptômes dépressifs (Institut Terram)` }; } },
   { id: 'crush', a: [13, 19], once: 1, w: 2, run: () => { eff({ h: 4 }); return 'Premier amour. Ça dure un été.'; } },
   { id: 'teen_job', a: [15, 19], gap: 2, c: () => isDrom() && S.q <= 3, w: 2, run: () => { S.money += 300; return 'Tu aides un oncle sur un chantier pendant les vacances. Quelques billets.'; } },
@@ -94,7 +94,7 @@ export const EVENTS = [
   { id: 'anniv', a: [25, 80], gap: 5, c: () => S.fam.married && S.fam.partner && S.fam.partner.alive, w: 2, run: () => { eff({ h: 3, so: 2 }); return 'Anniversaire de mariage. Un repas sur la plage.'; } },
   { id: 'split', a: [22, 60], once: 1, c: () => S.fam.partner && !S.flags.ipv && chance(0.35), w: 2, run: () => { S.fam.partner = null; S.fam.married = false; eff({ h: -8, so: -4 }); return { t: 'Séparation.' + (S.fam.kids.length ? ' Les enfants restent avec ' + sx('leur mère', 'toi') + '.' : ''), k: 'bad', f: isDrom() ? 'Aux Antilles, 4 familles avec enfants sur 10 sont monoparentales, le plus souvent une mère seule (INSEE, approx)' : null }; } },
   // --- climat / environnement ---
-  { id: 'cyclone', a: [15, 90], gap: 5, c: () => isDrom() && C().cyc > 0 && chance(C().cyc), w: 4, run: () => { const loss = Math.round(S.income * 0.5 + 2000); S.money -= loss; eff({ h: -8, hl: -3 }); return { t: pick(['Cyclone. Le toit est parti, l’électricité revient trois semaines plus tard.', 'Inondation. La boue jusqu’aux genoux dans le salon. L’assurance traîne.']), k: 'bad', f: 'Le GIEC projette +13 % de cyclones intenses à +2 °C ; Chido (déc. 2024) a dévasté Mayotte' }; } },
+  { id: 'cyclone', a: [15, 90], gap: 5, c: () => isDrom() && C().cyc > 0 && chance(C().cyc), w: 4, run: () => { S.flags.rainY = S.age; const loss = Math.round(S.income * 0.5 + 2000); S.money -= loss; eff({ h: -8, hl: -3 }); return { t: pick(['Cyclone. Le toit est parti, l’électricité revient trois semaines plus tard.', 'Inondation. La boue jusqu’aux genoux dans le salon. L’assurance traîne.']), k: 'bad', f: 'Le GIEC projette +13 % de cyclones intenses à +2 °C ; Chido (déc. 2024) a dévasté Mayotte' }; } },
   { id: 'sargasse', a: [10, 90], gap: 9, t: ['GLP', 'MTQ'], c: () => !S.urban || chance(0.3), w: 2, run: () => { eff({ hl: -2, h: -3 }); return { t: 'Sargasses. L’odeur d’œuf pourri, les maux de tête, les appareils qui rouillent.', k: 'bad', f: 'Les échouements de sargasses libèrent de l’hydrogène sulfuré ; l’ARS recommande l’évacuation au-delà de 5 ppm (approx, à sourcer)' }; } },
   { id: 'heat', a: [5, 90], gap: 15, c: () => isDrom(), w: 1, run: () => { eff({ hl: -2 }); return { t: 'La saison des pluies arrive tard, les nuits ne refroidissent plus.', f: '+76 cm de niveau de la mer d’ici 2100 au scénario intermédiaire du GIEC ; la zone de Jarry pourrait être submergée 180 jours par an entre 2060 et 2100 (RAC 2025)' }; } },
   { id: 'sea_rise', a: [50, 90], once: 1, c: () => isDrom() && S.flags.house && !S.urban && chance(0.5), w: 3, run: () => { eff({ h: -6 }); return { t: 'La mer a mangé dix mètres de plage devant la maison. Elle ne vaut plus rien.', k: 'bad', f: 'En Guadeloupe, Martinique et à Saint-Martin, le projet Carib-Coast cartographie le recul du trait de côte (BRGM)' }; } },
@@ -115,6 +115,40 @@ export const EVENTS = [
 
 // ---------- DÉCISIONS ----------
 export const DECS = [
+  {
+    id: 'hobby6', a: [6, 7], once: 1, c: () => !S.flags.decHobby, title: () => 'Après l’école', text: () => `${parW().charAt(0).toUpperCase() + parW().slice(1)} demande ce que tu veux faire le mercredi.`,
+    choices: () => { S.flags.decHobby = 1; const o = orig(); const loc = o === 'REU' ? ['maloya', 'moringue'] : o === 'GUF' ? ['danse', 'kasékò'] : o === 'MYT' ? ['debaa', 'danse'] : o === 'MTQ' ? ['bèlè', 'tambour'] : ['gwoka', 'danse']; const h = pick(loc); return [
+      { t: 'Le football au club du quartier', run: () => { S.hobbies.push({ id: 'football', lv: 1 }); eff({ hl: 3, so: 3, h: 2 }); return 'Tu t’inscris au club de foot. Entraînement le mercredi, match le samedi.'; } },
+      { t: `${h.charAt(0).toUpperCase() + h.slice(1)}, avec les anciens`, run: () => { S.hobbies.push({ id: h, lv: 1 }); eff({ so: 3, h: 3, sm: 1 }); return `Tu apprends le ${h}. Les anciens disent que tu as l’oreille.`; } },
+      { t: 'La musique (clavier, guitare)', run: () => { S.hobbies.push({ id: 'musique', lv: 1 }); eff({ h: 3, sm: 1 }); return 'Un clavier d’occasion. Tu joues tous les soirs.'; } },
+      { t: 'Rien, aider à la maison', run: () => { eff({ so: 2, sm: -1 }); return 'Tu restes aider à la maison. Les petits, les courses, le jardin.'; } },
+    ]; },
+  },
+  {
+    id: 'college11', a: [11, 11], once: 1, c: () => S.school, title: () => 'L’entrée au collège', text: () => isDrom() && !S.urban ? 'Le collège est à une heure de bus. Il y a aussi l’internat, ou le collège privé en ville, plus cher.' : 'Quel collège ?',
+    choices: () => { const c = C(); return [
+      { t: 'Le collège du secteur', run: () => { eff({ so: 2 }); return 'Tu vas au collège du secteur, avec les copains du quartier.'; } },
+      { t: 'Le privé en ville', hide: S.q < 3 && chance(0.7), run: () => { S.money -= 0; S.flags.prive = 1; eff({ sm: 3, so: -2 }); return { t: 'Le collège privé. Les parents serrent le budget.', f: isDrom() ? 'Dans les DROM, l’enseignement privé sous contrat scolarise une part importante des enfants des familles aisées (approx, DEPP)' : null }; } },
+      { t: 'L’internat', hide: isDia() || S.urban, run: () => { eff({ sm: 2, so: -3, h: -2 }); return 'Internat. Tu rentres le vendredi soir.'; } },
+    ]; },
+  },
+  {
+    id: 'lycee15', a: [15, 15], once: 1, c: () => S.school === 'lyc', title: () => 'Après le brevet', text: () => 'Le conseil de classe demande ton orientation.',
+    choices: () => [
+      { t: 'Lycée général', run: () => { S.flags.filiere = 'gen'; eff({ sm: 3 }); return 'Seconde générale. Les maths, la philo, le bac dans trois ans.'; } },
+      { t: 'Lycée professionnel (bac pro, CAP)', run: () => { S.flags.filiere = 'pro'; eff({ sm: 1, h: 1 }); return { t: 'Lycée pro. Un métier dans les mains à 18 ans.', f: isDrom() ? 'Dans les DROM, la part des élèves orientés en voie professionnelle est nettement plus élevée qu’en Hexagone (DEPP, approx)' : null }; } },
+      { t: 'Arrêter, travailler avec la famille', hide: S.q >= 3, run: () => { S.school = null; S.flags.dropout = 1; S.job = 'informal'; S.edu = 2; eff({ h: -2, so: 2 }); return { t: 'Tu arrêtes. Tu aides sur le marché, sur le bateau, au snack.', k: 'bad', f: `${C().neet} % des 15-29 ans ${isDia() ? 'de la diaspora' : C().article} ne sont ni en études, ni en emploi, ni en formation (INSEE)` }; } },
+    ],
+  },
+  {
+    id: 'ete16', a: [16, 17], once: 1, c: () => S.school, title: () => 'L’été', text: () => 'Deux mois devant toi.',
+    choices: () => [
+      { t: 'Un job d’été', run: () => { S.money += 600; eff({ sm: 1, h: 1 }); return isDrom() ? 'Deux mois au snack de la plage. Tes premiers 600 €.' : 'Deux mois de job d’été. Tes premiers 600 €.'; } },
+      { t: 'Les vacances au pays, chez la famille', hide: !isDia(), run: () => { S.money -= 300; eff({ so: 5, h: 4 }); return `Deux mois ${TBY[orig()].article}. Tu reviens avec l’accent.`; } },
+      { t: 'Réviser, préparer le bac', run: () => { eff({ sm: 4, h: -2 }); return 'Un été de fiches et de révisions.'; } },
+      { t: 'La plage, les amis', run: () => { eff({ so: 4, h: 4, sm: -1 }); return 'Un été à ne rien faire. Le meilleur.'; } },
+    ],
+  },
   {
     id: 'college', a: [18, 19], c: () => S.flags.bac && !S.school && !S.flags.decCollege, title: () => 'Après le bac', text: () => isDrom() ? `Tu as le bac. L’université ${C().article} propose peu de filières. Partir coûte cher mais tout le monde dit que c’est là que ça se passe.` : 'Tu as le bac. Et maintenant ?',
     choices: () => { S.flags.decCollege = 1; const c = C(); return [

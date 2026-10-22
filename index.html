@@ -77,6 +77,29 @@ select{font:inherit;background:var(--sur);color:var(--ink);border:1px solid var(
 .chip{flex:none;padding:9px 13px;border-radius:999px;background:var(--sur);color:var(--ink2);font-size:14px;border:1px solid transparent}
 .chip[aria-pressed=true]{background:var(--sun);color:#1a1400}
 .chip small{display:block;font-size:11px;opacity:.75}
+/* ---------- tirage / acte ---------- */
+#draw{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 16px}
+#draw .lbl{color:var(--mut);font-size:13px;margin-bottom:10px}
+#draw h1{font-size:clamp(44px,11vw,80px);font-weight:300;margin:0;line-height:1.05;animation:pop .6s ease-out}
+#draw .p{color:var(--ink2);margin-top:12px}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+#acte{padding:28px 0 60px}
+#acte h1{font-size:38px;margin:0 0 14px;font-weight:300}
+#acte .story{font-size:17px;line-height:1.55;margin:0 0 18px}
+#acte canvas{width:100%;aspect-ratio:160/72;border-radius:12px;image-rendering:pixelated;display:block;margin:0 0 14px}
+.ctxcard{background:var(--sur);border-radius:14px;padding:14px;margin:12px 0}
+.ctxcard h3{margin:0 0 6px;font-size:19px}
+.ctxcard p{margin:0 0 10px;color:var(--ink2);font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpis div{background:var(--sur2);border-radius:10px;padding:8px;font-size:12px;color:var(--mut)}
+.kpis b{display:block;font-family:Fraunces,serif;font-size:22px;font-weight:300;color:var(--ink)}
+.scene{position:relative;margin:0 0 10px}
+.scene canvas{width:100%;aspect-ratio:160/72;border-radius:12px;image-rendering:pixelated;display:block}
+.scene .cap{font-size:13px;color:var(--ink2);padding:6px 2px 0}
+.ind{background:var(--sur);border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--ink2);display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.ind b{display:block;color:var(--ink);font-weight:500;font-size:15px}
+.prio{background:var(--sur);border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--ink2)}
+.prio h4{margin:0 0 4px;font:400 16px Fraunces,serif;color:var(--ink)}
 /* ---------- fiche ---------- */
 .fiche{background:var(--sur);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:14px}
 .fiche summary{cursor:pointer;color:var(--ink2);font-family:Fraunces,serif;font-size:17px;list-style:none;display:flex;justify-content:space-between}
@@ -139,8 +162,10 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
   <p class="small">Chiffres : INSEE, Santé publique France, INED, DREES, Fnors, SSMSI. <a href="#" id="srcLink">Voir les sources et les territoires</a> · <a href="#" id="pastLink">Mes vies passées</a></p>
 </section>
 
+<section id="draw" class="wrap hidden"><div class="lbl">Tirage de ton territoire de naissance</div><h1 id="drawName"></h1><div class="p" id="drawP"></div></section>
+<section id="acte" class="wrap hidden"></section>
 <section id="life" class="wrap hidden">
-  <div class="hdr"><div class="top"><div class="age"><span id="age">0</span><small>ans</small></div><div class="where" id="where"></div><div class="ctl"><button id="pause" aria-pressed="false">⏸</button><button id="speed">×1</button><button id="auto" aria-pressed="false" title="Mode automatique">auto</button></div></div>
+  <div class="hdr"><div class="top"><div class="age"><span id="age">0</span><small>ans</small></div><div class="where" id="where"></div><div class="ctl"><button id="pause" aria-pressed="false">⏸</button><button id="speed">×1</button><button id="next" title="Passer à l’année suivante">suiv. »</button><button id="auto" aria-pressed="false" title="Mode automatique">auto</button></div></div>
   <div class="id"><canvas id="portrait" width="24" height="24"></canvas><div><div class="nm" id="nm"></div><div class="sub" id="sub"></div></div></div>
   <div class="gauges">
     <div class="g"><span>Santé</span><span class="bar"><i id="g_hl"></i></span><span class="v" id="v_hl"></span></div>
@@ -149,6 +174,9 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
     <div class="g"><span>Savoir</span><span class="bar"><i id="g_sm"></i></span><span class="v" id="v_sm"></span></div>
   </div>
   <div class="money"><span id="job"></span><span id="eur"></span></div></div>
+  <div class="scene"><canvas id="scene"></canvas><div class="cap" id="cap"></div></div>
+  <div class="ind" id="ind"></div>
+  <div class="prio" id="prio"></div>
   <details class="fiche" id="fiche"><summary>Fiche d’identité et famille</summary><div id="ficheBody"></div></details>
   <details class="fiche" id="compBox" open><summary>Nés à la même seconde</summary><div class="comp" id="comp"></div></details>
   <ul class="feed" id="feed"></ul>
@@ -163,6 +191,8 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
 import * as E from './engine.js';
 import { EVENTS, DECS, REFLECT } from './events.js';
 import { TERRITORIES, HEXAGONE, SOURCES } from './data.js';
+import { makeScene } from './scene.js';
+let SCENE = null, SCENE2 = null;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 let S = null, paceMin = 20, raf = null, last = 0;
@@ -229,7 +259,30 @@ function renderChips() {
   if (!o.length) { el.innerHTML = '<span class="small">Tu es un bébé. Tes parents décident.</span>'; return; }
   for (const k of o) { const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('aria-pressed', S.focus === k); b.innerHTML = `${FOC[k].n}<small>${FOC[k].d}</small>`; b.onclick = () => { S.focus = k; renderChips(); }; el.appendChild(b); }
 }
-function renderAll() { renderTop(); renderId(); renderGauges(); renderChips(); renderFiche(); renderComp(); renderFoot(); }
+function household() {
+  const who = []; const a = S.age; const sk = S.flags.skin ?? 2;
+  if (a < 18 || S.flags.withParents) { if (S.fam.mom.alive) who.push({ h: 17, skin: SKINS2[sk], shirt: '#E2A6C7', hair: '#1E140E', walk: 0 }); if (S.fam.dad.alive && !S.fam.dad.absent) who.push({ h: 18, skin: SKINS2[(sk + 1) % 5], shirt: '#5B7FB5', hair: '#1E140E', walk: 0 }); }
+  if (S.fam.partner && S.fam.partner.alive) who.push({ h: 17, skin: SKINS2[(sk + 2) % 5], shirt: '#6FBF8A', hair: '#1E140E', walk: 0 });
+  for (const k of S.fam.kids) if (k.alive && k.age < 18 && !k.far) who.push({ h: k.age < 6 ? 8 : 11, skin: SKINS2[sk], shirt: '#F2B33D', hair: '#1E140E', walk: 1 });
+  return who.slice(0, 5);
+}
+const SKINS2 = ['#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#C9A07C'];
+function sceneState() { const h = new Date().getHours(); return { S, territory: S.cur, night: h >= 20 || h < 6, rain: S.flags.rainY === S.age, household: household() }; }
+function caption() {
+  const c = E.TBY[S.cur]; const a = S.age; const who = [];
+  if (a < 18 || S.flags.withParents) { if (S.fam.mom.alive && S.fam.dad.alive && !S.fam.dad.absent) who.push('avec tes parents'); else if (S.fam.mom.alive) who.push('avec ta mère'); else if (S.fam.dad.alive && !S.fam.dad.absent) who.push('avec ton père'); else who.push('chez ta grand-mère'); }
+  else { if (S.fam.partner && S.fam.partner.alive) who.push('avec ' + S.fam.partner.name); const k = S.fam.kids.filter(k => k.alive && k.age < 18 && !k.far).length; if (k) who.push(k + (k > 1 ? ' enfants' : ' enfant')); if (!who.length) who.push('seul·e'); }
+  const home = S.cur === 'DIA' ? (S.flags.house ? 'un appartement à toi' : 'un appartement en location') : S.flags.house ? 'une maison que tu as fait construire' : a < 18 ? (S.q <= 2 ? 'une petite maison en dur' : S.q >= 4 ? 'une villa' : 'une maison de famille') : 'une maison en location';
+  return `${S.city}, ${S.cur === 'DIA' ? 'Hexagone' : c.nom}${S.urban ? '' : ' · campagne'} · ${home} · ${who.join(' · ')}`;
+}
+function renderScene() { if (!SCENE) SCENE = makeScene($('#scene')); SCENE.set(sceneState()); $('#cap').textContent = caption(); }
+function renderInd() {
+  const c = E.TBY[S.cur]; const a = S.age; const nw = E.eurMois(c, S.money - S.debt) * 12;
+  $('#ind').innerHTML = `<div>Patrimoine net<b>${a < 18 ? '—' : (nw < 0 ? '<span style="color:var(--hib)">' : '') + Math.round(nw).toLocaleString('fr') + ' €' + (nw < 0 ? '</span>' : '')}</b>${a < 18 ? 'tu vis chez tes parents' : S.flags.house ? 'propriétaire' : 'locataire'}</div><div>Revenu annuel<b>${a < 18 ? '—' : (E.eurMois(c, S.income) * 12).toLocaleString('fr') + ' €'}</b>${a < 18 ? 'revenu familial : quintile ' + S.q : 'rang : ' + (S.pct >= 0.5 ? 'top ' + Math.max(1, Math.round((1 - S.pct) * 100)) + ' %' : 'parmi les ' + Math.max(1, Math.round(S.pct * 100)) + ' % les plus bas')}</div>`;
+  const st = E.stage(); const txt = st === 'baby' ? 'Tu es un bébé, tes parents t’élèvent. Les premiers moments s’accumulent ; dès 6 ans, tu choisiras la priorité de chaque année. Tu peux passer cette période avec « suiv. » ou en ×8.' : st === 'school' ? 'Chaque année, tu choisis où va ton énergie. Ça change les probabilités, pas le destin : les chiffres du territoire pèsent toujours.' : st === 'elder' ? 'La retraite. Ce qui compte maintenant : la santé, les liens, ce que tu laisses.' : 'Travail, famille, santé, formation : chaque année, une priorité. Les décisions importantes s’ouvrent d’elles-mêmes.';
+  $('#prio').innerHTML = `<h4>Priorité de l’année · ${a} ans · ${esc(S.city)}</h4>${txt}`;
+}
+function renderAll() { renderTop(); renderId(); renderGauges(); renderChips(); renderFiche(); renderComp(); renderFoot(); renderScene(); renderInd(); }
 
 // ---------- compagnons nés à la même seconde (vies jouées d'avance en mode auto) ----------
 let COMP = [];
@@ -259,7 +312,7 @@ function renderFoot() {
 // ---------- hooks moteur ----------
 const hooks = {
   fire(e) {
-    if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); if (!ev) return; const r = ev.run(); if (r) { const l = typeof r === 'string' ? E.log(r) : E.log(r.t, r.k, r.f); feedItem(l); } S.flags['ev_' + e.id] = S.age; S.recent.push(e.id); if (S.recent.length > 14) S.recent.shift(); renderId(); renderGauges(); if (S.phase === 'dead') showDeath(); }
+    if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); if (!ev) return; const r = ev.run(); if (r) { const l = typeof r === 'string' ? E.log(r) : E.log(r.t, r.k, r.f); feedItem(l); } S.flags['ev_' + e.id] = S.age; S.recent.push(e.id); if (S.recent.length > 14) S.recent.shift(); renderId(); renderGauges(); renderScene(); if (S.phase === 'dead') showDeath(); }
     else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { if (S.auto) { E.choose(Math.floor(E.rnd() * S.pending.choices.length)); const l = S.log[S.log.length - 1]; if (l && l.k === 'dec') feedItem(l); renderAll(); } else showDecision(); } }
     else if (e.type === 'ms') { const l = { a: S.age, t: ({ 1: 'Un an. Tu as passé la première année.', 5: 'Cinq ans.', 15: 'Quinze ans.', 30: 'Trente ans.', 50: 'Cinquante ans.', 65: 'Soixante-cinq ans.', 80: 'Quatre-vingts ans.', 90: 'Quatre-vingt-dix ans.', 100: 'Cent ans.' })[S.age] + ' ' + survivors(), k: 'ms' }; feedItem(l); }
     else if (e.type === 'reflect') { if (!S.auto) showReflect(e.id); }
@@ -289,18 +342,35 @@ function loop(ts) { if (!last) last = ts; const dt = Math.min(0.25, (ts - last) 
 $('#pause').onclick = () => { S.paused = !S.paused; renderTop(); };
 $('#speed').onclick = () => { S.speed = ({ 1: 2, 2: 4, 4: 8, 8: 1 })[S.speed]; renderTop(); };
 $('#auto').onclick = () => { S.auto = !S.auto; E.ensureFocus(); renderAll(); };
+$('#next').onclick = () => { if (!S || S.phase !== 'life' || S.pending) return; S.paused = false; let g = 0; while (S.phase === 'life' && !S.pending && S.t < 1 && g++ < 400) E.tick(S.yearSec / 40, hooks); renderAll(); };
 
-// ---------- naissance ----------
+// ---------- naissance : tirage → acte de naissance → vie ----------
 $('#born').onclick = () => {
-  S = E.newLife({ paceMin }); S.phase = 'life'; S.home = $('#home').value || null;
-  $('#intro').classList.add('hidden'); $('#life').classList.remove('hidden'); $('#feed').innerHTML = '';
+  S = E.newLife({ paceMin }); S.phase = 'birth'; S.home = $('#home').value || null;
+  const c = E.TBY[S.born]; const tot = TERRITORIES.reduce((x, t) => x + t.b, 0);
+  $('#intro').classList.add('hidden'); $('#draw').classList.remove('hidden'); window.scrollTo(0, 0);
+  $('#drawName').textContent = c.id === 'DIA' ? 'Hexagone' : c.nom; $('#drawP').textContent = `Probabilité : ${(c.b / tot * 100).toFixed(1).replace('.', ',')} %${c.id === 'DIA' ? ' · de parents ' + E.TBY[S.origin].gentF + 's' : ''}`;
   COMP = []; for (let i = 0; i < 4; i++) COMP.push(runHeadless());
-  E.planYear(EVENTS, DECS); renderAll(); last = 0; if (!raf) raf = requestAnimationFrame(loop);
+  setTimeout(showActe, 2600);
 };
+function showActe() {
+  const c = E.TBY[S.born], o = E.TBY[S.origin]; const d = new Date(); const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const m = S.fam.mom, dd = S.fam.dad; const J = id => E.JOBS[id] ? E.JOBS[id].n : '—';
+  const story = `En ${MOIS[d.getMonth()]} ${d.getFullYear()}, tu nais ${S.sex === 'F' ? 'fille' : 'garçon'} ${E.aVille(S.city)}, ${S.born === 'DIA' ? 'en Hexagone, dans une famille ' + o.gentF : c.id === 'REU' ? 'à La Réunion' : 'en ' + c.nom}, parmi ${['les 20 % les plus modestes', 'les 20 % modestes', 'les 20 % du milieu', 'les 20 % aisés', 'les 20 % les plus aisés'][S.q - 1]}. ${S.fam.older ? 'Tu as déjà ' + S.fam.older + (S.fam.older > 1 ? ' aînés.' : ' aîné·e.') : 'Tu es le premier enfant.'} ${dd.absent ? 'Ton père n’est pas à tes côtés.' : 'Tes deux parents sont là.'} Religion de la famille : ${RELN[S.rel]}.`;
+  const lt = E.lifeTable(c, S.sex); let l = 1; for (let x = 0; x < 5; x++) l *= 1 - lt.q[x];
+  $('#acte').innerHTML = `<div class="small">Acte de naissance</div><h1>${esc(S.name)}</h1><canvas id="scene0"></canvas><p class="story">${esc(story)}</p>
+  <div class="fiche" style="padding:14px"><dl style="margin:0"><dt>Sexe</dt><dd>${S.sex === 'F' ? 'Femme' : 'Homme'}</dd><dt>Lieu</dt><dd>${esc(S.city)}${S.urban ? '' : ', campagne'}</dd><dt>Racines</dt><dd>${esc(S.roots)}</dd><dt>Mère</dt><dd>${esc(m.name)}, ${m.age} ans, ${J(m.job)}</dd><dt>Père</dt><dd>${dd.absent ? 'absent' : esc(dd.name) + ', ' + dd.age + ' ans, ' + J(dd.job)}</dd><dt>Revenu familial</dt><dd>quintile ${S.q} · ${E.eurMois(c, Math.max(E.incomeAt(c, 0.5) * 0.45, E.incomeAt(c, S.famPct))).toLocaleString('fr')} €/mois</dd></dl></div>
+  <div class="ctxcard"><h3>${c.id === 'DIA' ? 'Né·e en Hexagone, de parents ' + esc(o.gentF) + 's' : esc(c.nom)}</h3><p>${esc(c.contexte || '')}</p><div class="kpis"><div><b>${String(c.le).replace('.', ',')}</b>ans d’espérance de vie</div><div><b>${(100 - l * 100).toFixed(1).replace('.', ',')} %</b>de risque de mourir avant 5 ans</div><div><b>${c.pov} %</b>sous le seuil de pauvreté</div></div></div>
+  <p class="small">Vivre jusqu’à l’espérance de vie prend environ ${S.paceMin} min (1 an ≈ ${Math.round(S.yearSec)} s). Les choix changent les probabilités, pas le destin.</p>
+  <div class="row"><button class="primary" id="startLife">Commencer la vie</button></div>`;
+  $('#draw').classList.add('hidden'); $('#acte').classList.remove('hidden'); window.scrollTo(0, 0);
+  SCENE2 = makeScene($('#scene0')); SCENE2.set(sceneState());
+  $('#startLife').onclick = () => { SCENE2.stop(); S.phase = 'life'; $('#acte').classList.add('hidden'); $('#life').classList.remove('hidden'); $('#feed').innerHTML = ''; window.scrollTo(0, 0); E.planYear(EVENTS, DECS); renderAll(); last = 0; if (!raf) raf = requestAnimationFrame(loop); };
+}
 
 // ---------- mort ----------
 function showDeath() {
-  cancelAnimationFrame(raf); raf = null; save(true);
+  cancelAnimationFrame(raf); raf = null; if (SCENE) SCENE.stop(); save(true);
   const s = E.summary(); const c = s.born; const cur = s.died;
   const home = S.home && S.home !== 'HEX' ? E.TBY[S.home] : null;
   const yrs = s.years; const w = 520, h = 100; const pts = k => yrs.map((y, i) => `${(i / Math.max(1, yrs.length - 1) * w).toFixed(1)},${(h - y[k] / 100 * h).toFixed(1)}`).join(' ');
@@ -309,7 +379,7 @@ function showDeath() {
   $('#dead').innerHTML = `
     <h1>${esc(s.name)}</h1>
     <div class="age">${s.age} <span style="font-size:28px">ans</span></div>
-    <div class="cause">${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + esc(s.cause) : ''} à ${esc(s.city)}${s.died.id === 'DIA' ? ', en Hexagone' : ', ' + s.died.nom}.</div>
+    <div class="cause">${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + esc(s.cause) : ''} ${esc(E.aVille(s.city))}${s.died.id === 'DIA' ? ', en Hexagone' : ', ' + s.died.nom}.</div>
     <div class="cert"><h3>Acte de décès</h3><dl>
       <dt>Naissance</dt><dd>${esc(s.bornCity)}, ${esc(c.nom === 'Hexagone (diaspora)' ? 'Hexagone, famille ' + s.origin.gentF : c.nom)}</dd>
       <dt>Racines</dt><dd>${esc(s.roots)} · ${esc(s.rel)}</dd>
@@ -345,7 +415,7 @@ async function shareCard(s) {
   x.fillStyle = '#EAF2EE'; x.font = '300 88px Fraunces'; wrap(x, s.name, 80, 300, 920, 96);
   x.font = '300 300px Fraunces'; x.fillStyle = '#F2B33D'; x.fillText(String(s.age), 80, 720); x.font = '300 64px Fraunces'; x.fillStyle = '#EAF2EE'; x.fillText('ans', 80 + x.measureText(String(s.age)).width * 4.2, 720);
   x.font = '400 40px "Instrument Sans"'; x.fillStyle = '#B9CFC9';
-  let y = 820; const lines = [`${s.sex === 'F' ? 'Née' : 'Né'} à ${s.bornCity}, ${s.born.nom === 'Hexagone (diaspora)' ? 'en Hexagone de parents ultramarins' : s.born.nom}`, `${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + s.cause : ''} à ${s.city}`, `${s.edu} · ${E.JOBS[s.job] ? E.JOBS[s.job].n : ''}`, s.married || s.kids ? `${s.married ? 'marié·e' : ''}${s.kids ? (s.married ? ', ' : '') + s.kids + ' enfant' + (s.kids > 1 ? 's' : '') : ''}` : 'sans famille à soi'];
+  let y = 820; const lines = [`${s.sex === 'F' ? 'Née' : 'Né'} à ${s.bornCity}, ${s.born.nom === 'Hexagone (diaspora)' ? 'en Hexagone de parents ultramarins' : s.born.nom}`, `${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + s.cause : ''} ${E.aVille(s.city)}`, `${s.edu} · ${E.JOBS[s.job] ? E.JOBS[s.job].n : ''}`, s.married || s.kids ? `${s.married ? 'marié·e' : ''}${s.kids ? (s.married ? ', ' : '') + s.kids + ' enfant' + (s.kids > 1 ? 's' : '') : ''}` : 'sans famille à soi'];
   for (const l of lines) { y = wrap(x, l, 80, y, 920, 50) + 14; }
   y += 40; x.fillStyle = '#7FA39C'; x.font = '400 34px "Instrument Sans"';
   for (const f of [...new Map(s.facts.map(f => [f.f, f])).values()].slice(0, 3)) { x.fillStyle = '#7FA39C'; x.fillRect(80, y - 30, 4, 40); y = wrap(x, f.f, 110, y, 890, 42) + 30; }
