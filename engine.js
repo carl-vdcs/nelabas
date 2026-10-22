@@ -64,13 +64,14 @@ export function sigmaOf(c) { const g = clamp(c.gi, 0.22, 0.68); return Math.SQRT
 export function incomeAt(c, pct) { const s = sigmaOf(c); return c.ppp * 0.9 * Math.exp(s * invNorm(clamp(pct, 0.003, 0.997)) - s * s / 2); }
 export function pctOfIncome(c, inc) { const s = sigmaOf(c); const mu = Math.log(c.ppp * 0.9) - s * s / 2; return normCdf((Math.log(Math.max(1, inc)) - mu) / s); }
 // affichage : PPA $ → euros ressentis (1in8b affiche les deux). Ici on affiche directement en € nets/mois.
-export const eurMois = (c, inc) => Math.round(inc * (c.med * 12 / incomeAt(c, 0.5)) / 12);
+// conversion PPA → euros nets/mois : la médiane de la distribution = salaire médian du territoire
+export const eurMois = (c, inc) => Math.round(inc * (c.wage * 12 / incomeAt(c, 0.5)) / 12);
 
 // ---------- métiers ----------
 export const JOBS = {
   student: { n: 'étudiant·e', lo: 0, hi: 0, e: 0, s: 'none' },
-  seeking: { n: 'en recherche d’emploi', lo: 0.05, hi: 0.15, e: 0, s: 'none' },
-  informal: { n: 'petits boulots (jobs, débrouille)', lo: 0.05, hi: 0.3, e: 0, s: 'ser' },
+  seeking: { n: 'sans emploi', lo: 0.05, hi: 0.15, e: 0, s: 'none' },
+  informal: { n: 'en petits boulots (débrouille)', lo: 0.05, hi: 0.3, e: 0, s: 'ser' },
   farm: { n: 'agriculteur·rice (banane, canne, maraîchage)', lo: 0.08, hi: 0.4, e: 0, s: 'agr', risk: { chlor: 1 } },
   fisher: { n: 'pêcheur·se', lo: 0.1, hi: 0.4, e: 0, s: 'agr', risk: { drown: 3 } },
   construct: { n: 'ouvrier·ère du bâtiment', lo: 0.15, hi: 0.5, e: 0, s: 'ind', risk: { inj: 2 } },
@@ -187,6 +188,18 @@ const SURNAMES = {
 };
 export function makeName(cl, sex) { const n = NAMES[cl] || NAMES.antilles; return pick(n[sex]) + ' ' + pick(SURNAMES[cl] || SURNAMES.antilles); }
 
+export const ROOTS = {
+  GLP: ['afro-descendante', 'afro-descendante', 'afro-descendante', 'indienne (kouli)', 'métisse', 'haïtienne', 'dominicaise'],
+  MTQ: ['afro-descendante', 'afro-descendante', 'afro-descendante', 'indienne (kouli)', 'métisse', 'sainte-lucienne'],
+  GUF: ['créole guyanaise', 'créole guyanaise', 'bushinenguée', 'haïtienne', 'brésilienne', 'amérindienne', 'surinamaise', 'hmong', 'venue d’Hexagone'],
+  REU: ['créole (kaf)', 'créole (kaf)', 'malbar (tamoule)', 'yab (petits blancs des Hauts)', 'zarab (gujaratie)', 'chinoise', 'zoreil (parents venus d’Hexagone)', 'comorienne'],
+  MYT: ['mahoraise', 'mahoraise', 'mahoraise', 'comorienne', 'malgache'],
+};
+export const REL_NM = { C: 'christianisme', M: 'islam', H: 'hindouisme', N: 'sans religion', O: 'autre' };
+export function relPick(c) { const w = {}; for (const p of c.rel.split(',')) w[p[0]] = +p.slice(1); return wpick(w); }
+const PJOBS = { 1: ['seeking', 'informal', 'domestic', 'farm', 'construct', 'vendor', 'homemaker'], 2: ['informal', 'domestic', 'construct', 'driver', 'shop', 'hotel', 'farm', 'fisher'], 3: ['shop', 'driver', 'clerk', 'nurse', 'civil', 'hotel', 'tech'], 4: ['teacher', 'civil', 'nurse', 'clerk', 'tech', 'owner'], 5: ['engineer', 'doctor', 'lawyer', 'owner', 'teacher', 'civil'] };
+export function parentJob(c, q, sex) { let pool = PJOBS[q].filter(j => !(c.id === 'DIA' && ['farm', 'fisher', 'hotel'].includes(j))); if (sex === 'M') pool = pool.filter(j => !['domestic', 'homemaker'].includes(j)); if (sex === 'F' && chance(0.15 + (c.id === 'MYT' ? 0.3 : 0))) return 'homemaker'; return pick(pool); }
+
 export function newLife(opt = {}) {
   const c = opt.territory ? TBY[opt.territory] : chooseTerritory(opt.mode || 'birth');
   const sex = opt.sex || (chance(0.512) ? 'M' : 'F');
@@ -195,7 +208,12 @@ export function newLife(opt = {}) {
   const qw = [1, 2, 3, 4, 5].map(q => Math.exp(-((q - 3 + povShift * 3) ** 2) / 3));
   const q = +wpick(Object.fromEntries(qw.map((w, i) => [i + 1, w])));
   const urban = chance(c.urb / 100);
-  const name = makeName(c.nm, sex);
+  // origine familiale : pour la diaspora, le DROM des parents (composition INSEE 2008 : MTQ 32 %, GLP 32 %, REU 30 %, GUF 7 %, MYT 3 %, approx)
+  const origin = c.id === 'DIA' ? wpick({ MTQ: 32, GLP: 32, REU: 30, GUF: 4, MYT: 2 }) : c.id;
+  const oc = TBY[origin];
+  const name = makeName(oc.nm, sex);
+  const roots = pick(ROOTS[origin] || ROOTS.GLP);
+  const rel = relPick(oc);
   const lt = lifeTable(c, sex);
   const mAge = Math.round(clamp(27 + (rnd() + rnd() + rnd() - 1.5) * 8 + (c.tfr - 2) * -1.5, 15, 45));
   const fAge = Math.round(clamp(mAge + 3 + (rnd() - 0.5) * 8, 17, 65));
@@ -205,14 +223,18 @@ export function newLife(opt = {}) {
   // familles monoparentales : ~ 40 % des familles avec enfants aux Antilles, 50 % Guyane, 33 % Réunion (INSEE, approx)
   const absentP = ({ GLP: 0.42, MTQ: 0.40, GUF: 0.5, REU: 0.33, MYT: 0.3, DIA: 0.3 })[c.id] * (q <= 2 ? 1.2 : q >= 4 ? 0.7 : 1);
   const paceMin = opt.paceMin || 20;
+  // parents : prénoms, métiers selon le quintile, revenu familial
+  const momName = makeName(oc.nm, 'F').split(' ')[0], dadName = makeName(oc.nm, 'M').split(' ')[0];
+  const momJob = parentJob(c, q, 'F'), dadJob = parentJob(c, q, 'M');
+  const famPct = clamp((q - 0.5) / 5 + (rnd() - 0.5) * 0.12, 0.03, 0.97);
   S = {
-    v: 1, phase: 'birth', paceMin, yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 90),
+    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 90),
     t: 0, age: 0, speed: 1, paused: false, pending: null,
     born: c.id, cur: c.id, sex, q, urban, name, city: urban ? pick(c.villes) : pick(c.campagne.length ? c.campagne : c.villes), bornCity: null,
     st: { hl: clamp(80 + (q - 3) * 3 - c.u5 / 4 + ri(-6, 6), 40, 95), h: 60 + ri(-8, 8), sm: 50, so: 55 + ri(-6, 6) },
     money: 0, debt: 0, income: 0, pct: 0, job: 'student', jobY: 0,
     edu: 0, school: null, schoolY: 0, focus: null, fT: {}, focusW: {},
-    fam: { mom: { age: mAge, alive: true }, dad: { age: fAge, alive: true, absent: chance(absentP) }, older, younger: total - 1 - older, partner: null, married: false, kids: [] },
+    fam: { mom: { age: mAge, alive: true, name: momName, job: momJob }, dad: { age: fAge, alive: true, absent: chance(absentP), name: dadName, job: dadJob }, older, younger: total - 1 - older, partner: null, married: false, kids: [] },
     smoker: false, alc: false, conds: {}, hobbies: [], mig: null, migY: 0, retired: false, pension: 0,
     log: [], years: [], queue: [], recent: [], flags: {}, deathAt: null,
     stats: { maxIncome: 0, decisions: 0, kidsBorn: 0, tripsHome: 0, remitTotal: 0 },
@@ -220,7 +242,7 @@ export function newLife(opt = {}) {
   };
   S.bornCity = S.city;
   // chlordécone : imprégnation dès l'enfance, proportionnelle au taux adulte (approx : enfants un peu moins)
-  if (c.chlor && chance(c.chlor / 100 * 0.9)) S.flags.chlor = 1;
+  if (c.chlor && (c.id === 'GLP' || c.id === 'MTQ') && chance(c.chlor / 100 * 0.9)) S.flags.chlor = 1;
   if (c.chlorVTR && S.flags.chlor && chance(c.chlorVTR / c.chlor)) S.flags.chlorHigh = 1;
   return S;
 }
@@ -299,6 +321,7 @@ export function finances() {
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.08) * 0.6 : 0; // RSA / aides / famille
+  S.famIncome = Math.max(incomeAt(c, 0.5) * 0.45, incomeAt(c, S.famPct) * ((S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0.55) + (S.fam.mom.alive ? 0 : -0.3))); // plancher ≈ RSA + prestations
   const priceK = 1 + (c.price || 0) / 100 * 0.35; // part alimentaire ~35 % du budget des ménages modestes
   const spend = S.income * clamp(0.9 - (S.pct - 0.5) * 0.3, 0.55, 1.05) * priceK;
   const remit = S.focusW.remit ? S.income * 0.1 : 0; S.stats.remitTotal += remit;
@@ -384,5 +407,5 @@ export function summary() {
   const happiest = years.length ? years.reduce((b, y) => y.h > b.h ? y : b, years[0]) : null;
   const edu = ['sans diplôme', 'collège', 'brevet', 'bac', 'études supérieures', 'doctorat'][S.edu] || '';
   const work = {}; for (const y of years) if (y.inc > 0) work[y.cur] = (work[y.cur] || 0) + 1;
-  return { name: S.name, sex: S.sex, born: c, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.mainJob || S.job, married: S.fam.married, kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
+  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.mainJob || S.job, married: S.fam.married, kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
 }

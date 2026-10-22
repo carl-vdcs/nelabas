@@ -11,7 +11,7 @@ export const TERRITORIES = [
     ppp: 25000, gi: 0.40, tfr: 1.8, mmr: 20,                           // ppp = niveau de vie médian 1 310 €/mois ×12 ≈ 15,7 k€ net → converti en PIB/hab PPA ≈ 25 k$ (approx) ; gi dérivé du rapport interdécile 4,9 (approx) ; mmr ENCMM Antilles ≈ 2× Hexagone (approx)
     urb: 65, agr: 4, net: 85, ter: 35, eys: 15.0, sm: 15, sf: 9, oop: 9, cm: 0, wh: 6.0,
     hom: 7.5, road: 10, suic: 6.0, suicM: 11.1, suicF: 1.9, hiv: 0.5,
-    pov: 34, med: 1310, price: 41.8, priceAll: 15.8, dia: 10.2, diaK: 1.8, ob: 20,
+    wage: 1900, pov: 34, med: 1310, price: 41.8, priceAll: 15.8, dia: 10.2, diaK: 1.8, ob: 20,
     chlor: 81.3, chlorVTR: 14.3, dep: 37, doc: 319, water: 0, out: 25, neet: 25, unemp: 17, youthUnemp: 35,
     ipv: 1.3, cyc: 0.15, slr: 1, haz: 'SQV', mig: 'DIA',
     villes: ['Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', 'Basse-Terre', 'Sainte-Anne', 'Le Moule'],
@@ -24,7 +24,7 @@ export const TERRITORIES = [
     ppp: 26000, gi: 0.40, tfr: 1.52, mmr: 20,
     urb: 70, agr: 4, net: 86, ter: 36, eys: 15.2, sm: 16, sf: 10, oop: 9, cm: 0, wh: 6.0,
     hom: 7.3, road: 12, suic: 6.2, suicM: 11.6, suicF: 2.0, hiv: 0.5,
-    pov: 29, med: 1360, price: 40.2, priceAll: 13.8, dia: 9.5, diaK: 1.5, ob: 20,
+    wage: 1950, pov: 29, med: 1360, price: 40.2, priceAll: 13.8, dia: 9.5, diaK: 1.5, ob: 20,
     chlor: 85.5, chlorVTR: 18.7, dep: 44, doc: 332, water: 0, out: 25, neet: 25, unemp: 13, youthUnemp: 31,
     ipv: 1.3, cyc: 0.12, slr: 1, haz: 'SQV', mig: 'DIA',
     villes: ['Fort-de-France', 'Le Lamentin', 'Schœlcher', 'Le Robert', 'Ducos', 'Rivière-Salée'],
@@ -37,7 +37,7 @@ export const TERRITORIES = [
     ppp: 18000, gi: 0.50, tfr: 3.05, mmr: 50,                          // mmr Guyane ≈ 5× Hexagone (approx, ENCMM)
     urb: 85, agr: 6, net: 70, ter: 20, eys: 13.5, sm: 14, sf: 8, oop: 9, cm: 1, wh: 5.6,
     hom: 16.5, road: 15, suic: 8.8, suicM: 12.8, suicF: 5.4, hiv: 1.0, mal: 0.3,
-    pov: 53, med: 920, price: 39.4, priceAll: 13.7, dia: 3.8, diaK: 1.5, ob: 20,
+    wage: 2000, pov: 53, med: 920, price: 39.4, priceAll: 13.7, dia: 3.8, diaK: 1.5, ob: 20,
     chlor: 0, chlorVTR: 0, dep: 52, doc: 242, water: 15, out: 10, neet: 31, unemp: 15, youthUnemp: 32,
     ipv: 1.9, cyc: 0, slr: 1, haz: 'F', mig: 'DIA', mercure: 1,
     villes: ['Cayenne', 'Matoury', 'Rémire-Montjoly', 'Kourou', 'Saint-Laurent-du-Maroni'],
@@ -50,7 +50,7 @@ export const TERRITORIES = [
     ppp: 22000, gi: 0.38, tfr: 2.12, mmr: 15,
     urb: 95, agr: 3, net: 88, ter: 30, eys: 15.0, sm: 21, sf: 17, oop: 9, cm: 0, wh: 6.1,
     hom: 2.0, road: 9, suic: 10.4, suicM: 18.0, suicF: 4.0, hiv: 0.1,
-    pov: 38, med: 1160, price: 36.7, priceAll: 8.9, dia: 8.4, diaK: 1.9, ob: 16,
+    wage: 1800, pov: 38, med: 1160, price: 36.7, priceAll: 8.9, dia: 8.4, diaK: 1.9, ob: 16,
     chlor: 0, chlorVTR: 0, dep: 32, doc: 364, water: 0, out: 14, neet: 27, unemp: 18, youthUnemp: 38,
     ipv: 1.9, cyc: 0.2, slr: 1, haz: 'SV', mig: 'DIA',
     villes: ['Saint-Denis', 'Saint-Paul', 'Saint-Pierre', 'Le Tampon', 'Saint-André', 'Saint-Louis'],
@@ -63,7 +63,7 @@ export const TERRITORIES = [
     ppp: 8000, gi: 0.55, tfr: 3.6, mmr: 60,
     urb: 50, agr: 15, net: 55, ter: 8, eys: 11.0, sm: 10, sf: 2, oop: 15, cm: 5, wh: 5.2,
     hom: 5.7, road: 8, suic: 3.0, suicM: 5.0, suicF: 1.0, hiv: 0.2, mal: 0.1,
-    pov: 77, med: 260, price: 30.2, priceAll: 10.3, dia: 7, diaK: 1.5, ob: 18,
+    wage: 1300, pov: 77, med: 260, price: 30.2, priceAll: 10.3, dia: 7, diaK: 1.5, ob: 18,
     chlor: 0, chlorVTR: 0, dep: 43, doc: 89, water: 33, out: 8, neet: 36, unemp: 34, youthUnemp: 50,
     ipv: 1.7, cyc: 0.1, slr: 1, haz: 'SV', mig: 'DIA',
     villes: ['Mamoudzou', 'Koungou', 'Dzaoudzi', 'Dembéni'],
@@ -76,7 +76,7 @@ export const TERRITORIES = [
     ppp: 42000, gi: 0.32, tfr: 1.6, mmr: 10,
     urb: 95, agr: 1, net: 93, ter: 55, eys: 16.3, sm: 25, sf: 20, oop: 9, cm: 0, wh: 6.6,
     hom: 1.2, road: 5, suic: 13.2, suicM: 22.0, suicF: 6.0, hiv: 0.3,
-    pov: 22, med: 1500, price: 0, priceAll: 0, dia: 5.7, diaK: 1.0, ob: 18,
+    wage: 2100, pov: 22, med: 1500, price: 0, priceAll: 0, dia: 5.7, diaK: 1.0, ob: 18,
     chlor: 0, chlorVTR: 0, dep: 25, doc: 341, water: 0, out: 0, neet: 13, unemp: 9, youthUnemp: 17,
     ipv: 1.0, cyc: 0, slr: 0, haz: 'H', mig: 'GLP,MTQ,REU',
     villes: ['Paris', 'Créteil', 'Sarcelles', 'Évry', 'Bobigny', 'Lyon', 'Marseille', 'Toulouse'],
@@ -104,5 +104,6 @@ export const SOURCES = {
   climat: { t: 'Réseau Action Climat, Outre-mer et changement climatique (juin 2025)', u: 'https://www.maire-info.com/outre-mer/les-outre-mer-gravement-menaces-par-le-rechauffement-climatique-article-29759' },
 };
 
+// wage = salaire médian net mensuel des salariés à temps plein (approx, INSEE DADS)
 // Champs marqués approx (à vérifier avant publication) : ppp, gi, mmr, urb, agr, net, ter, eys, sm, sf, wh, road, hiv,
 // unemp/youthUnemp (hors MTQ), ipv (indice relatif), cyc, b/pop de DIA, pov/dep de DIA, u5 (dérivé de im).
