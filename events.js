@@ -1,7 +1,7 @@
 // Né là-bas — événements, décisions, pauses.
 // Format : { id, a:[min,max], t:['GLP',...] (territoires, optionnel), c:()=>cond, w:poids, once, gap, run:()=>texte|{t,k,f} }
 // k : 'ev' neutre, 'good', 'bad', 'loss' (deuil). f : fait sourcé affiché sous la ligne.
-import { S, C, TBY, eff, log, chance, pick, ri, rnd, clamp, incomeAt, JOBS, WORKING, lifeTable, makeName, die, aVille } from './engine.js';
+import { S, C, TBY, eff, log, chance, pick, ri, rnd, clamp, incomeAt, JOBS, WORKING, lifeTable, makeName, die, aVille, jobWeight, wpick, JOB_PUB } from './engine.js';
 
 const fem = () => S.sex === 'F';
 const sx = (m, f) => fem() ? f : m;
@@ -21,10 +21,14 @@ const parW = () => S.fam.mom.alive ? 'ta mère' : S.fam.dad.alive && !S.fam.dad.
 
 function takeJob(id, pctHint) { const J = JOBS[id]; S.job = id; S.jobY = 0; S.pct = clamp(pctHint ?? (J.lo + rnd() * (J.hi - J.lo) * 0.4), J.lo, J.hi); S.flags.mainJob = S.flags.mainJob || id; }
 function jobPool() {
-  const c = C(), e = S.edu; const pool = [];
-  for (const id in JOBS) { const J = JOBS[id]; if (J.s === 'none') continue; if (J.e > e) continue; if (J.fem && S.sex === 'M' && chance(0.7)) continue; if (J.male && S.sex === 'F' && chance(0.6)) continue; if (id === 'farm' && (S.urban || isDia())) continue; if (id === 'fisher' && (isDia() || S.urban)) continue; if (id === 'hotel' && isDia()) continue; if (id === 'owner') continue; if (id === 'artist' && chance(0.8)) continue; pool.push(id); }
-  return pool;
+  const c = C(), e = S.edu; const w = {};
+  for (const id in JOBS) { const J = JOBS[id]; if (J.s === 'none') continue; if (J.e > e) continue; if (id === 'farm' && (S.urban || isDia())) continue; if (id === 'fisher' && (isDia() || S.urban)) continue; if (id === 'hotel' && isDia()) continue; if (id === 'owner') continue;
+    let x = jobWeight(c, id); if (J.fem) x *= S.sex === 'F' ? J.fem : 1 / J.fem; if (J.male) x *= S.sex === 'M' ? J.male : 1 / J.male; if (id === 'artist') x *= 0.2;
+    if (e >= 4 && JOBS[id].e <= 1) x *= 0.3; // un diplômé du supérieur reçoit surtout des offres qualifiées
+    w[id] = Math.max(0.01, x); }
+  return w;
 }
+function pickJobs() { const w = jobPool(); const a = wpick(w); const w2 = { ...w }; delete w2[a]; const b = Object.keys(w2).length ? wpick(w2) : a; return [a, b]; }
 function unemp() { const c = C(); return (S.age < 30 ? c.youthUnemp : c.unemp) / 100; }
 
 // ---------- ÉVÉNEMENTS ----------
@@ -107,7 +111,7 @@ export const EVENTS = [
   { id: 'informal', a: [18, 55], gap: 3, c: () => S.job === 'seeking' && isDrom(), w: 3, run: () => { takeJob('informal'); return 'Tu te débrouilles : jobs, livraison, un peu de pêche, la vente le week-end. Non déclaré.'; } },
   { id: 'promo', a: [25, 60], gap: 4, c: () => workingP() && S.jobY >= 3, w: 2, run: () => { S.pct = clamp(S.pct + 0.06, 0, 0.99); eff({ h: 4 }); return 'Promotion. Un peu plus chaque mois.'; } },
   { id: 'layoff', a: [22, 62], gap: 5, c: () => workingP() && !['civil', 'teacher', 'nurse', 'police', 'owner'].includes(S.job) && chance(0.6), w: 2, run: () => { S.job = 'seeking'; S.jobY = 0; eff({ h: -6 }); return { t: pick(['Fin de contrat. Pas renouvelé.', 'L’entreprise ferme. La grande distribution a tué le petit commerce.', 'Licenciement économique.']), k: 'bad' }; } },
-  { id: 'fonction_publique', a: [22, 40], once: 1, c: () => isDrom() && S.edu >= 3 && (S.job === 'seeking' || S.job === 'informal') && chance(0.3), w: 3, run: () => { takeJob('civil'); eff({ h: 6 }); return { t: 'Concours réussi : fonctionnaire territorial. La sécurité, enfin, et la prime de vie chère.', k: 'good', f: 'Les fonctionnaires en poste dans les DROM perçoivent une majoration de traitement de 40 % aux Antilles-Guyane, 53 % à La Réunion' }; } },
+  { id: 'fonction_publique', a: [22, 40], once: 1, c: () => isDrom() && S.edu >= 3 && (S.job === 'seeking' || S.job === 'informal') && chance(C().pub / 100), w: 3, run: () => { takeJob('civil'); eff({ h: 6 }); return { t: 'Concours réussi : fonctionnaire territorial. La sécurité, enfin, et la prime de vie chère.', k: 'good', f: `${C().pub} % de l’emploi salarié ${C().article} est public, contre 22 % en Hexagone (INSEE 2024) ; les fonctionnaires y touchent une majoration de 40 % (Antilles-Guyane) à 53 % (Réunion)` }; } },
   { id: 'overwork', a: [25, 60], gap: 3, c: () => workingP() && S.focusW.work > 0.5, w: 3, run: () => { eff({ hl: -4, so: -3 }); return { t: 'Tu enchaînes. Ta famille te voit le dimanche.', k: 'bad' }; } },
   { id: 'paygap', a: [25, 55], once: 1, c: () => fem() && workingP(), w: 2, run: () => { return { t: 'Tu apprends qu’un collègue au même poste gagne plus que toi.', k: 'bad', f: 'Écart de salaire femmes-hommes en France : 14 % à poste et temps de travail comparables (INSEE)' }; } },
   // --- vie chère / économie ---
@@ -199,7 +203,7 @@ export const DECS = [
   },
   {
     id: 'job', a: [16, 60], gap: 1, c: () => (S.job === 'seeking' || S.job === 'informal') && !S.school && chance(1 - unemp() * 0.8), title: () => 'Une offre', text: () => 'Une proposition de travail.',
-    choices: () => { const pool = jobPool(); const a = pick(pool), b = pick(pool.filter(x => x !== a)) || a; const off = id => { const J = JOBS[id]; const p = clamp(J.lo + rnd() * (J.hi - J.lo) * 0.5, J.lo, J.hi); return { id, p, eur: Math.round(incomeAt(C(), p) * (C().wage * 12 / incomeAt(C(), 0.5)) / 12) }; }; const o1 = off(a), o2 = off(b); return [
+    choices: () => { const [a, b] = pickJobs(); const off = id => { const J = JOBS[id]; const p = clamp(J.lo + rnd() * (J.hi - J.lo) * 0.5, J.lo, J.hi); return { id, p, eur: Math.round(incomeAt(C(), p) * (C().wage * 12 / incomeAt(C(), 0.5)) / 12) }; }; const o1 = off(a), o2 = off(b); return [
       { t: `${JOBS[o1.id].n} — ${o1.eur} €/mois`, run: () => { takeJob(o1.id, o1.p); return `Tu commences comme ${JOBS[o1.id].n}.`; } },
       { t: `${JOBS[o2.id].n} — ${o2.eur} €/mois`, hide: o2.id === o1.id, run: () => { takeJob(o2.id, o2.p); return `Tu commences comme ${JOBS[o2.id].n}.`; } },
       { t: 'Refuser et continuer à chercher', run: () => { eff({ h: -2 }); return 'Tu refuses. Tu continues à chercher.'; } },

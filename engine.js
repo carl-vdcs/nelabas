@@ -95,6 +95,25 @@ export const JOBS = {
   retired: { n: 'retraité·e', lo: 0, hi: 0, e: 0, s: 'none' },
 };
 export const WORKING = j => j && !['student', 'seeking', 'homemaker', 'retired'].includes(j);
+// catégorie socioprofessionnelle INSEE de chaque métier + secteur public
+export const JOB_CS = { farm: 'agr', fisher: 'agr', vendor: 'art', owner: 'art', artist: 'art', engineer: 'cad', doctor: 'cad', lawyer: 'cad', teacher: 'int', nurse: 'int', tech: 'int', police: 'int', civil: 'int', clerk: 'emp', shop: 'emp', hotel: 'emp', domestic: 'emp', informal: 'emp', construct: 'ouv', driver: 'ouv' };
+export const JOB_PUB = { teacher: 1, nurse: 0.8, civil: 1, police: 1, clerk: 0.5, doctor: 0.6, tech: 0.3, engineer: 0.3, domestic: 0.2 };
+export const CS_NM = { agr: 'agriculteurs', art: 'artisans, commerçants', cad: 'cadres', int: 'professions intermédiaires', emp: 'employés', ouv: 'ouvriers' };
+export const CS_Q = { agr: 2, art: 3, cad: 5, int: 4, emp: 2, ouv: 2 };
+// poids d'un métier dans un territoire : structure CS × part du public × spécificités
+export function jobWeight(c, id) {
+  const J = JOBS[id]; if (!J || J.s === 'none') return 0;
+  const cs = JOB_CS[id]; let w = cs ? (c.cs[cs] || 1) : 5;
+  const n = Object.keys(JOB_CS).filter(k => JOB_CS[k] === cs).length; w /= n; // répartir la CS entre ses métiers
+  const pub = JOB_PUB[id] || 0; w *= 1 + pub * (c.pub / 100) * 2; // le public pèse 31 à 53 % de l'emploi
+  if (c.id === 'DIA' && (id === 'nurse' || id === 'domestic' || id === 'clerk')) w *= 1.6; // natifs des DOM en Hexagone : hôpital, administration
+  if (c.id === 'DIA' && (id === 'driver' || id === 'construct')) w *= 1.4; // 39 % d'ouvriers (transport, logistique, BTP)
+  if (c.id === 'MYT' && id === 'informal') w *= 3; // emploi informel massif
+  if (c.id === 'GUF' && id === 'construct') w *= 1.5;
+  if ((c.id === 'GLP' || c.id === 'MTQ') && id === 'hotel') w *= 1.5;
+  return w;
+}
+export const socialClass = (c, momJob, dadJob) => { const j = dadJob && !['homemaker', 'seeking', 'informal'].includes(dadJob) ? dadJob : momJob; const cs = JOB_CS[j]; const pub = (JOB_PUB[j] || 0) >= 0.8; if (!cs) return j === 'homemaker' ? 'famille sans emploi' : 'famille sans emploi stable'; return 'famille ' + (pub ? 'de fonctionnaires' : CS_NM[cs] === 'cadres' ? 'de cadres' : 'd’' + CS_NM[cs]); };
 
 // ---------- causes de décès (poids par bande d'âge, profil « France ultramarine ») ----------
 export const CAUSE = {
@@ -199,7 +218,15 @@ export const ROOTS = {
 export const REL_NM = { C: 'christianisme', M: 'islam', H: 'hindouisme', N: 'sans religion', O: 'autre' };
 export function relPick(c) { const w = {}; for (const p of c.rel.split(',')) w[p[0]] = +p.slice(1); return wpick(w); }
 const PJOBS = { 1: ['seeking', 'informal', 'domestic', 'farm', 'construct', 'vendor', 'homemaker'], 2: ['informal', 'domestic', 'construct', 'driver', 'shop', 'hotel', 'farm', 'fisher'], 3: ['shop', 'driver', 'clerk', 'nurse', 'civil', 'hotel', 'tech'], 4: ['teacher', 'civil', 'nurse', 'clerk', 'tech', 'owner'], 5: ['engineer', 'doctor', 'lawyer', 'owner', 'teacher', 'civil'] };
-export function parentJob(c, q, sex) { let pool = PJOBS[q].filter(j => !(c.id === 'DIA' && ['farm', 'fisher', 'hotel'].includes(j))); if (sex === 'M') pool = pool.filter(j => !['domestic', 'homemaker'].includes(j)); if (sex === 'F' && chance(0.15 + (c.id === 'MYT' ? 0.3 : 0))) return 'homemaker'; return pick(pool); }
+export function parentJob(c, q, sex) {
+  // sans emploi selon le taux d'emploi du territoire (Mayotte 32 %, Guyane 42 %, Hexagone 63 %), corrigé par le quintile
+  const noJobP = clamp((1 - c.empRate / 100) * (q <= 2 ? 1.4 : q >= 4 ? 0.35 : 0.8), 0.03, 0.8);
+  if (chance(noJobP)) return sex === 'F' && chance(c.id === 'MYT' ? 0.7 : 0.35) ? 'homemaker' : 'seeking';
+  let pool = PJOBS[q].filter(j => !['seeking', 'homemaker'].includes(j) && !(c.id === 'DIA' && ['farm', 'fisher', 'hotel'].includes(j)));
+  if (sex === 'M') pool = pool.filter(j => j !== 'domestic');
+  const w = {}; for (const j of pool) w[j] = Math.max(0.05, jobWeight(c, j)) * (JOBS[j].fem && sex === 'F' ? JOBS[j].fem : 1) * (JOBS[j].male && sex === 'M' ? JOBS[j].male : 1);
+  return wpick(w);
+}
 
 export function newLife(opt = {}) {
   const c = opt.territory ? TBY[opt.territory] : chooseTerritory(opt.mode || 'birth');
@@ -229,7 +256,7 @@ export function newLife(opt = {}) {
   const momJob = parentJob(c, q, 'F'), dadJob = parentJob(c, q, 'M');
   const famPct = clamp((q - 0.5) / 5 + (rnd() - 0.5) * 0.12, 0.03, 0.97);
   S = {
-    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 120),
+    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, classe: socialClass(c, momJob, dadJob), yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 120),
     t: 0, age: 0, speed: 1, paused: false, pending: null,
     born: c.id, cur: c.id, sex, q, urban, name, city: urban ? pick(c.villes) : pick(c.campagne.length ? c.campagne : c.villes), bornCity: null,
     st: { hl: clamp(80 + (q - 3) * 3 - c.u5 / 4 + ri(-6, 6), 40, 95), h: 60 + ri(-8, 8), sm: 50, so: 55 + ri(-6, 6) },
@@ -408,5 +435,5 @@ export function summary() {
   const happiest = years.length ? years.reduce((b, y) => y.h > b.h ? y : b, years[0]) : null;
   const edu = ['sans diplôme', 'collège', 'brevet', 'bac', 'études supérieures', 'doctorat'][S.edu] || '';
   const work = {}; for (const y of years) if (y.inc > 0) work[y.cur] = (work[y.cur] || 0) + 1;
-  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.mainJob || S.job, married: S.fam.married, kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
+  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.mainJob || S.job, married: S.fam.married, kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
 }
