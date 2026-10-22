@@ -223,13 +223,13 @@ export function newLife(opt = {}) {
   const older = Math.min(ri(0, total - 1), Math.max(0, Math.floor((mAge - 16) / 2.2)));
   // familles monoparentales : ~ 40 % des familles avec enfants aux Antilles, 50 % Guyane, 33 % Réunion (INSEE, approx)
   const absentP = ({ GLP: 0.42, MTQ: 0.40, GUF: 0.5, REU: 0.33, MYT: 0.3, DIA: 0.3 })[c.id] * (q <= 2 ? 1.2 : q >= 4 ? 0.7 : 1);
-  const paceMin = opt.paceMin || 20;
+  const paceMin = opt.paceMin || 60;
   // parents : prénoms, métiers selon le quintile, revenu familial
   const momName = makeName(oc.nm, 'F').split(' ')[0], dadName = makeName(oc.nm, 'M').split(' ')[0];
   const momJob = parentJob(c, q, 'F'), dadJob = parentJob(c, q, 'M');
   const famPct = clamp((q - 0.5) / 5 + (rnd() - 0.5) * 0.12, 0.03, 0.97);
   S = {
-    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 90),
+    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 120),
     t: 0, age: 0, speed: 1, paused: false, pending: null,
     born: c.id, cur: c.id, sex, q, urban, name, city: urban ? pick(c.villes) : pick(c.campagne.length ? c.campagne : c.villes), bornCity: null,
     st: { hl: clamp(80 + (q - 3) * 3 - c.u5 / 4 + ri(-6, 6), 40, 95), h: 60 + ri(-8, 8), sm: 50, so: 55 + ri(-6, 6) },
