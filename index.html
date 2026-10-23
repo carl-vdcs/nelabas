@@ -258,7 +258,7 @@ function portrait(cv, S) {
 const FOC = E.FOCUS;
 function renderTop() {
   const c = E.TBY[S.cur];
-  $('#age').textContent = S.age; $('#where').textContent = `${S.city}${S.cur === 'DIA' ? ', Hexagone' : ', ' + c.nom}`;
+  $('#age').textContent = S.age; $('#where').textContent = `${S.city}${S.away ? ', Québec' : S.cur === 'DIA' ? ', Hexagone' : ', ' + c.nom}`;
   for (const b of $('#speeds').querySelectorAll('[data-s]')) b.setAttribute('aria-pressed', +b.dataset.s === S.speed); $('#pause').setAttribute('aria-pressed', S.paused); $('#auto').setAttribute('aria-pressed', !!S.auto);
 }
 function renderId() {
@@ -275,7 +275,7 @@ function renderFiche() {
   $('#ficheBody').innerHTML = `<dl>
     <dt>Sexe</dt><dd>${S.sex === 'F' ? 'Femme' : 'Homme'}</dd>
     <dt>Naissance</dt><dd>${esc(S.bornCity)}, ${S.born === 'DIA' ? 'Hexagone' : esc(E.TBY[S.born].nom)}${S.born !== 'DIA' && S.bornHosp ? ` <small>(${esc(S.bornHosp.n)})</small>` : ''}</dd>
-    <dt>Résidence</dt><dd>${esc(S.city)}, ${S.cur === 'DIA' ? 'Hexagone' : esc(c.nom)}${S.urban ? '' : ' · campagne'}</dd>
+    <dt>Résidence</dt><dd>${esc(S.city)}, ${S.away ? 'Québec' : S.cur === 'DIA' ? 'Hexagone' : esc(c.nom)}${S.urban ? '' : ' · campagne'}</dd>
     <dt>Racines</dt><dd>${esc(S.roots)}${S.born === 'DIA' ? ` · famille ${esc(o.gentF)}` : ''}</dd>
     <dt>Religion</dt><dd>${RELN[S.rel]}</dd>
     <dt>Milieu</dt><dd>${esc(S.classe)} · ${['les 20 % les plus modestes', 'les 20 % modestes', 'les 20 % du milieu', 'les 20 % aisés', 'les 20 % les plus aisés'][S.q - 1]}</dd>
@@ -311,7 +311,7 @@ function caption() {
   if (a < 18 || S.flags.withParents) { if (S.fam.mom.alive && S.fam.dad.alive && !S.fam.dad.absent) who.push('avec tes parents'); else if (S.fam.mom.alive) who.push('avec ta mère'); else if (S.fam.dad.alive && !S.fam.dad.absent) who.push('avec ton père'); else who.push('chez ta grand-mère'); }
   else { if (S.fam.partner && S.fam.partner.alive) who.push('avec ' + S.fam.partner.name); const k = S.fam.kids.filter(k => k.alive && k.age < 18 && !k.far).length; if (k) who.push(k + (k > 1 ? ' enfants' : ' enfant')); if (!who.length) who.push('seul·e'); }
   const home = S.cur === 'DIA' ? (S.flags.house ? 'un appartement à toi' : 'un appartement en location') : S.flags.house ? 'une maison que tu as fait construire' : a < 18 ? (S.q <= 2 ? 'une petite maison en dur' : S.q >= 4 ? 'une villa' : 'une maison de famille') : 'une maison en location';
-  return `${S.city}, ${S.cur === 'DIA' ? 'Hexagone' : c.nom}${S.urban ? '' : ' · campagne'} · ${home} · ${who.join(' · ')}`;
+  return `${S.city}, ${S.away ? 'Québec' : S.cur === 'DIA' ? 'Hexagone' : c.nom}${S.urban || S.away ? '' : ' · campagne'} · ${home} · ${who.join(' · ')}`;
 }
 function renderScene() { if (!SCENE) SCENE = makeScene($('#scene')); SCENE.set(sceneState()); $('#cap').textContent = caption(); }
 function renderInd() {
@@ -352,7 +352,7 @@ function renderFoot() {
 const hooks = {
   fire(e) {
     if (e.type === 'ev') { const l = E.fireEvent(EVENTS, e.id); if (l) feedItem(l); renderId(); renderGauges(); renderScene(); if (S.phase === 'dead') showDeath(); }
-    else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { if (S.auto) { const i = autoPick(S.pending); const chosen = S.pending.choices[i].t; const title = S.pending.title; E.choose(i); feedItem({ a: S.age, t: `${title} — tu as choisi : « ${chosen} ».`, k: 'dec' }); const l = S.log[S.log.length - 1]; if (l && (l.k === 'dec' || l.k === 'loss')) feedItem(l); renderAll(); } else showDecision(); } }
+    else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { if (S.auto) { const i = autoPick(S.pending); const chosen = S.pending.choices[i].t; const title = S.pending.title; const n0 = S.log.length; E.choose(i); feedItem({ a: S.age, t: `${title} — tu as choisi : « ${chosen} ».`, k: 'dec' }); for (const l of S.log.slice(n0)) feedItem(l); renderAll(); } else showDecision(); } }
     else if (e.type === 'ms') { const l = { a: S.age, t: ({ 1: 'Un an. Tu as passé la première année.', 5: 'Cinq ans.', 15: 'Quinze ans.', 30: 'Trente ans.', 50: 'Cinquante ans.', 65: 'Soixante-cinq ans.', 80: 'Quatre-vingts ans.', 90: 'Quatre-vingt-dix ans.', 100: 'Cent ans.' })[S.age] + ' ' + survivors(), k: 'ms' }; feedItem(l); }
     else if (e.type === 'reflect') { if (!S.auto) showReflect(e.id); }
   },
@@ -379,7 +379,7 @@ function closeSheet() { $('#sheet').className = 'hidden'; $('#sheet').innerHTML 
 function showDecision() {
   const p = S.pending; const ld = S.flags.lastDec; const recall = ld && ld.id !== p.id ? `<div class="small" style="margin:-6px 0 14px">Ton dernier choix, à ${ld.a} ans : « ${esc(ld.t)} ».</div>` : '';
   const s = sheet(`<div class="small">${S.age} ans · ${esc(S.city)}</div><h2>${esc(p.title)}</h2><p>${esc(p.text)}</p>${recall}${p.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c.t)}${c.sub ? `<span class="sub">${esc(c.sub)}</span>` : ''}</button>`).join('')}<p class="small" style="margin-top:12px">Les choix changent les probabilités, pas le destin.</p>`);
-  s.onclick = e => { const b = e.target.closest('.choice'); if (!b) return; E.choose(+b.dataset.i); const l = S.log[S.log.length - 1]; if (l && (l.k === 'dec' || l.k === 'loss')) feedItem(l); closeSheet(); renderAll(); if (S.phase === 'dead') showDeath(); };
+  s.onclick = e => { const b = e.target.closest('.choice'); if (!b) return; const chosen = p.choices[+b.dataset.i].t, title = p.title; const n0 = S.log.length; E.choose(+b.dataset.i); feedItem({ a: S.age, t: `${title} — tu as choisi : « ${chosen} ».`, k: 'dec' }); for (const l of S.log.slice(n0)) feedItem(l); closeSheet(); renderAll(); if (S.phase === 'dead') showDeath(); };
 }
 function showReflect(age) {
   S.paused = true; const r = REFLECT[age](); const s = sheet(`<h2>Une pause, à ${age} ans</h2><p>${esc(r.q)}</p><textarea id="refl" placeholder="${esc(r.hint || 'Une ligne, pour toi.')}"></textarea><div class="row"><button class="primary" id="reflOk">Continuer</button></div>`);

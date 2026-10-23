@@ -357,7 +357,7 @@ export function planYear(EVENTS, DECS) {
   const used = new Set(S.recent.slice(-10));
   const ts = []; for (let i = 0; i < n; i++) ts.push(0.08 + (i + rnd() * 0.8) / n * 0.86);
   for (const at of ts) { const ev = chooseEvent(EVENTS, used); if (ev) { used.add(ev.id); queue(at, 'ev', ev.id); } }
-  const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && (!d.t || d.t.includes(S.cur)) && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
+  const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && (!d.t || (!S.away && d.t.includes(S.cur))) && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
   // priorité : décisions jamais vues, puis famille, puis le reste ; un peu de hasard pour ne pas figer l'ordre
   const nDec = id => (S.decisions || []).filter(x => x.id === id).length;
   const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone', 'schquit', 'crime', 'moral', 'alcquit', 'gambquit', 'noschool', 'bande', 'garde', 'distance', 'symptome', 'recomposee', 'harcele', 'mal_etre', 'reseaux', 'master_depart'];
@@ -373,7 +373,7 @@ function chooseEvent(EVENTS, used) {
     if (S.age < e.a[0] || S.age > e.a[1] || used.has(e.id)) continue;
     if (e.once && S.flags['ev_' + e.id] != null) continue;
     if (e.gap && S.flags['ev_' + e.id] != null && S.age - S.flags['ev_' + e.id] < e.gap) continue;
-    if (e.t && !e.t.includes(S.cur)) continue;
+    if (e.t && (S.away || !e.t.includes(S.cur))) continue;
     if (e.c && !e.c()) continue;
     w[e.id] = e.w || 1; byId[e.id] = e;
   }
@@ -574,7 +574,7 @@ export function die(forced, label) {
 }
 
 // ---------- décisions ----------
-export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.t && !d.t.includes(S.cur)) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
+export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.t && (S.away || !d.t.includes(S.cur))) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
 export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; S.flags.lastDec = { id: p.id, t: ch.t, a: S.age, title: p.title }; (S.decisions = S.decisions || []).push({ id: p.id, t: ch.t, a: S.age, title: p.title, auto: !!S.auto }); const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
 
 // ---------- résumé ----------
