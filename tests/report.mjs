@@ -1,6 +1,6 @@
 // Rapport qualité hebdomadaire (Markdown sur stdout) : fréquence des événements et décisions, répétitions, couverture par territoire.
 import * as E from '../engine.js';
-import { EVENTS, DECS } from '../events.js';
+import { EVENTS, DECS, GUARD_STATS } from '../events.js';
 import { TERRITORIES } from '../data.js';
 const N = +process.argv[2] || 600; const ev = {}, dc = {}, perT = {}; let lives = 0;
 for (let i = 0; i < N; i++) {
@@ -15,4 +15,5 @@ console.log(`# Rapport qualité — ${new Date().toISOString().slice(0, 10)}\n\n
 console.log('## Événements les plus fréquents (par vie)\n'); for (const [k, v] of top) console.log(`- \`${k}\` : ${(v / lives).toFixed(2)}`);
 console.log(`\n## Jamais déclenchés sur ${lives} vies\n\n- événements : ${never.length ? never.map(x => '`' + x + '`').join(', ') : 'aucun'}\n- décisions : ${neverD.length ? neverD.map(x => '`' + x + '`').join(', ') : 'aucune'}`);
 console.log('\n## Répartition des naissances\n'); for (const t of TERRITORIES) console.log(`- ${t.nom} : ${perT[t.id] || 0}`);
+console.log('\n## Textes retirés par le garde-fou (à corriger à la source)\n'); for (const [k, v] of Object.entries(GUARD_STATS).sort((a, b) => b[1] - a[1]).slice(0, 20)) console.log(`- ${k} : ${v}`);
 console.log('\n## Décisions par vie\n'); for (const [k, v] of Object.entries(dc).sort((a, b) => b[1] - a[1])) console.log(`- \`${k}\` : ${(v / lives).toFixed(2)}`);

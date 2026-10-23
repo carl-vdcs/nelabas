@@ -19,3 +19,11 @@
 - Lancer `./precommit.sh` avant de pousser.
 
 ## Idées en attente (voir ROADMAP.md)
+
+## Couche de cohérence (modèle 1in8b)
+
+1in8b ne garde pas chaque texte à la main : une couche de prédicats (`parW`, `homeOthers`, `withParents`, `studyAway`, `famNear`…) est consultée par tous les textes, et les états sont structurés (`S.mind`, `S.alc`, `S.rec`) plutôt que des drapeaux épars. Ici, trois niveaux :
+
+1. **Prédicats** dans `events.js` : `momHere()`, `dadHere()`, `momLate()`, `momDay()`, `parents()`, `parentsV()`, `payeur()`, `gps()`, `gpFar()`, `isDrom()`, `isDia()`, `famLà()`, `S.away`, `workingP()`, `fem()`, `sx(m, f)`. Un texte qui nomme une personne ou un lieu passe par eux.
+2. **Lint statique** (`tests/static.mjs`) : un texte qui parle d'une personne/d'un lieu sans garde est compté ; cliquet qui ne peut que baisser.
+3. **Garde-fou moteur** (`unsafeText` dans `events.js`) : au moment de tirer, un événement dont le texte contredit l'état (mère morte, pas d'enfant, île depuis l'Hexagone, travail sans emploi, aisés qui se serrent la ceinture…) est retiré. Le rapport qualité liste ce qui a été retiré, à corriger à la source.
