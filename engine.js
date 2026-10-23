@@ -295,7 +295,7 @@ export function newLife(opt = {}) {
   const povShift = (c.pov - 15) / 100; // 0.19 GLP … 0.62 MYT
   // élites : békés et blancs-pays (Antilles), gros blancs (Réunion) ; familles d'entrepreneurs ; familles politiques
   const eliteP = ({ MTQ: 0.008, GLP: 0.003, REU: 0.004 })[c.id] || 0;
-  const elite = chance(eliteP) ? 'beke' : chance(0.025) ? 'biz' : chance(0.012) ? 'pol' : null;
+  const elite = c.id === 'DIA' ? (chance(0.02) ? 'biz' : null) : chance(eliteP) ? 'beke' : chance(0.025) ? 'biz' : chance(0.012) ? 'pol' : null; // békés et dynasties politiques : réalités des territoires, pas de la diaspora
   const qw = [1, 2, 3, 4, 5].map(q => Math.exp(-((q - 3 + povShift * 3) ** 2) / 3));
   const q = elite === 'beke' ? 5 : elite === 'biz' ? pick([4, 5]) : elite === 'pol' ? pick([4, 4, 5]) : +wpick(Object.fromEntries(qw.map((w, i) => [i + 1, w])));
   const urban = chance(c.urb / 100);
