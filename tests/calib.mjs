@@ -6,6 +6,7 @@ import { EVENTS, DECS } from '../events.js';
 import { TERRITORIES } from '../data.js';
 const N = +process.argv[2] || 800; const by = {}; let nan = 0, decs = [];
 for (let i = 0; i < N; i++) {
+  E.seed(5000 + i);
   const S = E.newLife(); S.phase = 'life'; S.auto = true;
   const hooks = { fire(e) { if (e.type === 'ev') E.fireEvent(EVENTS, e.id); else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) E.choose(Math.floor(E.rnd() * S.pending.choices.length)); } }, endYear() { E.endYear(hooks); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); }, onParentDeath() {}, onPartnerDeath() {}, onFamily() {} };
   E.planYear(EVENTS, DECS); let g = 0;

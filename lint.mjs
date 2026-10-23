@@ -24,7 +24,7 @@ const RULES = [
   { id: 'kids_none', why: 'pas d’enfant → pas de « les enfants »', test: (S, l, c) => !c.kids && /garde les enfants|tes enfants|ta fille te|ton fils te/i.test(l.t) ? l.t : null },
   { id: 'school_out', why: 'hors école : pas de « tu manques l’école »', test: (S, l, c) => !c.school && c.age >= 19 && /tu manques l’école|les profs pensent/i.test(l.t) ? l.t : null },
   { id: 'work_out', why: 'pas au travail (retraité, chômeur, enfant) : pas de « avant le travail »', test: (S, l, c) => !c.working && /avant le travail|ton patron|tes collègues/i.test(l.t) && !/pas de travail|sans travail|cherch/i.test(l.t) ? l.t : null },
-  { id: 'partner_none', why: 'sans partenaire : pas de partenaire nommé', test: (S, l, c) => !c.partner && c.ptName && !S.fam.kids.some(k => k.name === c.ptName) && !(S.flags.friends || []).some(f => f.name === c.ptName) && new RegExp('\\b' + c.ptName + '\\b').test(l.t) && !/sépar|meurt|divorc|quitt|ex-|ancien/i.test(l.t) ? l.t : null },
+  { id: 'partner_none', why: 'sans partenaire : pas de partenaire nommé', test: (S, l, c) => !c.partner && c.ptName && !S.fam.kids.some(k => k.name === c.ptName) && !(S.flags.friends || []).some(f => f.name === c.ptName) && new RegExp('\\b' + c.ptName + '\\b').test(l.t) && !/sépar|meurt|divorc|quitt|ex-|ancien|Tata /i.test(l.t) ? l.t : null },
   { id: 'mom_home', why: 'mère au foyer / sans emploi : elle ne « rentre pas à 20 h »', test: (S, l, c) => c.momHome && /Ta mère rentre à 20 h/.test(l.t) ? l.t : null },
   { id: 'cyclone_echo', why: '« après le cyclone » sans cyclone récent', test: (S, l, c) => /Après le cyclone/.test(l.t) && !(c.rainY != null && c.age - c.rainY <= 1) ? l.t : null },
   { id: 'sex_f', why: 'texte féminin pour un homme', test: (S, l, c) => c.sex === 'M' && /\b(es enceinte|tombes enceinte|premières règles|ménopause|mammographie|chabine|endométriose|accouch)/i.test(l.t) ? l.t : null },
@@ -47,7 +47,8 @@ const LIFE_RULES = [
   { id: 'dup_ids', why: 'pas de doublon d’identifiant', test: () => { const seen = new Set(); for (const x of [...EVENTS, ...DECS]) { if (seen.has(x.id)) return x.id; seen.add(x.id); } return null; } },
 ];
 
-function runLife(terr) {
+function runLife(terr, i) {
+  E.seed(1000 + i); // déterministe : même résultat ici et en CI
   const S = E.newLife(terr ? { territory: terr } : {}); S.phase = 'life'; S.auto = true;
   const ctxAt = []; // état au moment de chaque ligne de log
   const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, momHome: S.fam.mom.alive && ['homemaker', 'seeking'].includes(S.fam.mom.job), gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
@@ -64,7 +65,7 @@ function runLife(terr) {
 
 const found = {}; const ex = {}; let lives = 0;
 for (let i = 0; i < N; i++) {
-  const { S, ctxAt } = runLife(TERR); lives++;
+  const { S, ctxAt } = runLife(TERR, i); lives++;
   S.log.forEach((l, j) => { const c = ctxAt[j] || ctxAt[ctxAt.length - 1]; for (const r of RULES) { const m = r.test(S, l, c); if (m) { found[r.id] = (found[r.id] || 0) + 1; (ex[r.id] = ex[r.id] || []).length < 3 && ex[r.id].push(`[${S.born}/${S.origin} ${S.sex} ${c.age} ans] ${m.slice(0, 110)}`); } } });
   for (const r of LIFE_RULES) { const m = r.test(S); if (m) { found[r.id] = (found[r.id] || 0) + 1; (ex[r.id] = ex[r.id] || []).length < 3 && ex[r.id].push(`[${S.born} ${S.sex}] ${String(m).slice(0, 110)}`); } }
 }
