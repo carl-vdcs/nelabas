@@ -9,7 +9,7 @@ const PAL = {
   MYT: { sky: ['#1F6B70', '#7ED3CF'], sea: '#2FB3B8', ground: '#7F9A48', house: '#D8CBB0', roof: '#9B8560', trees: 'baobab', hills: '#4F7A3A' },
   DIA: { sky: ['#3A4350', '#8C98A8'], sea: null, ground: '#6E7378', house: '#9DA3AA', roof: '#5C6269', trees: 'city', hills: '#55606C' },
 };
-const SKINS = ['#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#C9A07C'];
+const SKINS = ['#4A2E1F', '#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#D4A98A', '#EFD3BF'];
 function px(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 function person(ctx, x, y, h, skin, shirt, hair, walkT) {
   // h = hauteur totale (8 bébé … 18 adulte) ; y = ligne de sol
@@ -58,7 +58,7 @@ export function makeScene(canvas) {
     px(ctx, 0, groundY + 10, W, 4, c === 'DIA' ? '#3A3F45' : '#8A8070'); car.x += car.v * dt * 25; if (car.x > W + 20) car.x = -30; px(ctx, car.x, groundY + 6, 14, 5, S.flags.car ? '#D9533B' : '#B9BDC4'); px(ctx, car.x + 3, groundY + 4, 8, 3, '#8FB5D0'); px(ctx, car.x + 2, groundY + 11, 3, 2, '#222'); px(ctx, car.x + 9, groundY + 11, 3, 2, '#222');
     // personnages : joueur + famille à la maison
     const skin = SKINS[S.flags.skin ?? 2]; const a = S.age; const ph = a < 1 ? 6 : a < 6 ? 8 : a < 12 ? 11 : a < 16 ? 14 : 17;
-    const hair = a > 60 ? '#D8D8D8' : '#1E140E'; const shirt = ['#D9533B', '#F2B33D', '#6FBF8A', '#E2A6C7', '#F0EBD8'][S.flags.skin ?? 2];
+    const hair = a > 60 ? '#D8D8D8' : (S.flags.skin >= 5 ? '#6B4A2B' : '#1E140E'); const shirt = ['#D9533B', '#F2B33D', '#6FBF8A', '#E2A6C7', '#F0EBD8', '#8FB5D0', '#C9A07C'][S.flags.skin ?? 2];
     const walk = a >= 1 ? t : null;
     const who = state.household; let px0 = hx - 12;
     for (const p of who) { person(ctx, px0, groundY, p.h, p.skin || skin, p.shirt, p.hair, p.walk ? t + px0 : null); px0 -= 9; }

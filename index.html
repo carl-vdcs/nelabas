@@ -245,8 +245,8 @@ function portrait(cv, S) {
   const ctx = cv.getContext('2d'); const c = E.TBY[S.cur]; ctx.imageSmoothingEnabled = false;
   const sky = ({ GLP: '#2E6F8E', MTQ: '#2A7A6A', GUF: '#2F6A3A', REU: '#3B5F8A', MYT: '#2E7F7A', DIA: '#56606E' })[S.cur];
   ctx.fillStyle = sky; ctx.fillRect(0, 0, 24, 24);
-  const skins = ['#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#C9A07C']; const skin = skins[S.flags.skin ?? (S.flags.skin = Math.floor(E.rnd() * 5))];
-  const a = S.age; const hair = a > 60 ? '#CFCFCF' : '#1E140E';
+  const skin = E.SKINS[S.flags.skin ?? 2];
+  const a = S.age; const hair = a > 60 ? '#CFCFCF' : (S.flags.skin >= 5 ? '#6B4A2B' : '#1E140E');
   ctx.fillStyle = skin; ctx.fillRect(8, 7, 8, 9); ctx.fillStyle = hair; ctx.fillRect(7, 5, 10, 3); if (S.sex === 'F' && a > 2) { ctx.fillRect(6, 6, 2, 8); ctx.fillRect(16, 6, 2, 8); }
   ctx.fillStyle = '#1a1a1a'; ctx.fillRect(10, 10, 1, 1); ctx.fillRect(13, 10, 1, 1);
   ctx.fillStyle = a < 3 ? '#F2E4C8' : S.job === 'civil' || S.job === 'clerk' || S.job === 'engineer' ? '#E9EEF2' : ({ farm: '#6B8A4A', fisher: '#3F7FB5', nurse: '#DDE9F2', police: '#2B3B5C', teacher: '#8B6AA8' })[S.job] || ['#D9533B', '#F2B33D', '#6FBF8A', '#E2A6C7', '#F0EBD8'][S.flags.skin];
@@ -299,12 +299,12 @@ function renderChips() {
 }
 function household() {
   const who = []; const a = S.age; const sk = S.flags.skin ?? 2;
-  if (a < 18 || S.flags.withParents) { if (S.fam.mom.alive) who.push({ h: 17, skin: SKINS2[sk], shirt: '#E2A6C7', hair: '#1E140E', walk: 0 }); if (S.fam.dad.alive && !S.fam.dad.absent) who.push({ h: 18, skin: SKINS2[(sk + 1) % 5], shirt: '#5B7FB5', hair: '#1E140E', walk: 0 }); if (a < 18) { const older = Math.max(0, S.fam.older - (S.flags.sibLeft || 0)); for (let i = 0; i < older; i++) who.push({ h: 14, skin: SKINS2[sk], shirt: '#F2B33D', hair: '#1E140E', walk: 1 }); for (let i = 0; i < S.fam.younger; i++) if (a >= 2 + i * 2) who.push({ h: a < 10 ? 8 : 11, skin: SKINS2[sk], shirt: '#6FBF8A', hair: '#1E140E', walk: 1 }); } }
-  if (S.fam.partner && S.fam.partner.alive) who.push({ h: 17, skin: SKINS2[(sk + 2) % 5], shirt: '#6FBF8A', hair: '#1E140E', walk: 0 });
-  for (const k of S.fam.kids) if (k.alive && k.age < 18 && !k.far) who.push({ h: k.age < 6 ? 8 : 11, skin: SKINS2[sk], shirt: '#F2B33D', hair: '#1E140E', walk: 1 });
+  const T = i => E.SKINS[Math.max(0, Math.min(6, i))]; const H = i => i >= 5 ? '#6B4A2B' : '#1E140E';
+  if (a < 18 || S.flags.withParents) { if (S.fam.mom.alive) who.push({ h: 17, skin: T(sk + (S.flags.momSk ?? (S.flags.momSk = Math.round(Math.random() * 2 - 1)))), shirt: '#E2A6C7', hair: H(sk), walk: 0 }); if (S.fam.dad.alive && !S.fam.dad.absent) who.push({ h: 18, skin: T(sk + (S.flags.dadSk ?? (S.flags.dadSk = Math.round(Math.random() * 2 - 1)))), shirt: '#5B7FB5', hair: H(sk), walk: 0 }); if (a < 18) { const older = Math.max(0, S.fam.older - (S.flags.sibLeft || 0)); for (let i = 0; i < older; i++) who.push({ h: 14, skin: T(sk), shirt: '#F2B33D', hair: H(sk), walk: 1 }); for (let i = 0; i < S.fam.younger; i++) if (a >= 2 + i * 2) who.push({ h: a < 10 ? 8 : 11, skin: T(sk), shirt: '#6FBF8A', hair: H(sk), walk: 1 }); } }
+  if (S.fam.partner && S.fam.partner.alive) { const ps = S.fam.partner.skin ?? sk; who.push({ h: 17, skin: T(ps), shirt: '#6FBF8A', hair: H(ps), walk: 0 }); }
+  for (const k of S.fam.kids) if (k.alive && k.age < 18 && !k.far) { const ks = k.skin ?? sk; who.push({ h: k.age < 6 ? 8 : 11, skin: T(ks), shirt: '#F2B33D', hair: H(ks), walk: 1 }); }
   return who.slice(0, 7);
 }
-const SKINS2 = ['#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#C9A07C'];
 function sceneState() { const h = new Date().getHours(); return { S, territory: S.cur, night: h >= 20 || h < 6, rain: S.flags.rainY === S.age, household: household() }; }
 function caption() {
   const c = E.TBY[S.cur]; const a = S.age; const who = [];

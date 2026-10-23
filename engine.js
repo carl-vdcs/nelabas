@@ -128,6 +128,13 @@ export const CS_NM = { agr: 'agriculteurs', art: 'artisans, commerçants', cad: 
 export const CS_Q = { agr: 2, art: 3, cad: 5, int: 4, emp: 2, ouv: 2 };
 // poids d'un métier dans un territoire : structure CS × part du public × spécificités
 export function jobWeight(c, id) {
+  const base = jobWeight0(c, id); const sk = (typeof S !== 'undefined' && S && S.flags) ? (S.flags.skin ?? 2) : 2;
+  // colorisme : l'accueil, l'hôtellerie, le commerce « de façade » et l'encadrement privé favorisent les peaux claires (approx)
+  if (['hotel', 'shop', 'clerk'].includes(id)) return base * (1 + (sk - 2) * 0.08);
+  if (['engineer', 'lawyer', 'owner'].includes(id)) return base * (1 + (sk - 2) * 0.06);
+  return base;
+}
+function jobWeight0(c, id) {
   const J = JOBS[id]; if (!J || J.s === 'none') return 0;
   const cs = JOB_CS[id]; let w = cs ? (c.cs[cs] || 1) : 5;
   const n = Object.keys(JOB_CS).filter(k => JOB_CS[k] === cs).length; w /= n; // répartir la CS entre ses métiers
@@ -261,6 +268,18 @@ export function parentJob(c, q, sex) {
 export function jobPct(job, q) { const J = JOBS[job]; if (!J || !WORKING(job)) return 0; return clamp(J.lo + (J.hi - J.lo) * clamp((q - 1) / 4 + (rnd() - 0.5) * 0.3, 0.05, 0.95), J.lo, J.hi); }
 export function parentIncome(c, P) { if (!P || !P.alive || P.absent || !WORKING(P.job)) return 0; if (P.pct == null) P.pct = jobPct(P.job, S.q); let inc = incomeAt(c, P.pct); if (JOB_PUB[P.job] && c.id !== 'DIA') inc *= 1 + (JOB_PUB[P.job] >= 0.8 ? (c.id === 'REU' ? 0.53 : 0.4) : 0.2); return Math.max(inc, incomeAt(c, 0.5) * 0.62); }
 export function famIncomeCalc(c) { const mom = parentIncome(c, S.fam.mom), dad = parentIncome(c, S.fam.dad); const n = (S.fam.mom.alive ? 1 : 0) + (S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0); const floor = incomeAt(c, 0.5) * (n ? 0.4 : 0.3); return Math.max(mom + dad, floor); }
+// carnation (0 = très foncée … 6 = blanche), tirée des racines ; sert aux avatars et aux biais de colorisme
+export const SKINS = ['#4A2E1F', '#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#D4A98A', '#EFD3BF'];
+export function skinFromRoots(roots, elite) {
+  if (elite === 'beke' || /béké|gros blancs|blancs-pays/.test(roots)) return chance(0.9) ? 6 : 5;
+  if (/yab|zoreil|venue d’Hexagone/.test(roots)) return pick([5, 6, 6]);
+  if (/métisse|chinoise|hmong|amérindienne|brésilienne|surinamaise/.test(roots)) return pick([2, 3, 4, 4]);
+  if (/indienne|kouli|malbar|zarab/.test(roots)) return pick([2, 3, 3, 4]);
+  if (/créole guyanaise|sainte-lucienne|dominicaise/.test(roots)) return pick([0, 1, 2, 3]);
+  return pick([0, 0, 1, 1, 2, 3]); // afro-descendante, kaf, bushinenguée, haïtienne, mahoraise, comorienne, malgache
+}
+export const skinOfPartner = (o, nm) => o === 'hex' ? pick([5, 6, 6]) : o === 'autre' ? (/sénégal|congol|haïti/.test(nm || '') ? pick([0, 1]) : /maroc|algér|vietnam/.test(nm || '') ? pick([3, 4, 4]) : /portug/.test(nm || '') ? pick([4, 5]) : 3) : clamp((S.flags.skin ?? 2) + ri(-1, 1), 0, 6);
+export const kidSkin = () => { const a = S.flags.skin ?? 2, b = S.fam.partner && S.fam.partner.skin != null ? S.fam.partner.skin : a; return clamp(Math.round((a + b) / 2 + (rnd() - 0.5) * 1.6), 0, 6); };
 export function newLife(opt = {}) {
   const c = opt.territory ? TBY[opt.territory] : chooseTerritory(opt.mode || 'birth');
   const sex = opt.sex || (chance(0.512) ? 'M' : 'F');
@@ -309,7 +328,7 @@ export function newLife(opt = {}) {
     stats: { maxIncome: 0, decisions: 0, kidsBorn: 0, tripsHome: 0, remitTotal: 0 },
     facts: [],
   };
-  S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city);
+  S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city); S.flags.skin = skinFromRoots(roots, elite);
   S.famIncome = famIncomeCalc(c); S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
   if (!S.elite) S.q = clamp(Math.ceil(S.famPct * 5), 1, 5); // le quintile affiché suit le revenu réel des parents
   // grands-parents : pour un enfant né en Hexagone, ils sont souvent restés au pays (sauf génération BUMIDOM déjà installée)
