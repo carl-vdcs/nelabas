@@ -23,6 +23,16 @@ const momHere = () => S.fam.mom.alive && !S.fam.mom.gone;
 // « Tes parents » / « Ta mère » / « Ton père » / « Ta grand-mère » selon qui est là
 const parents = () => dadHere() && momHere() ? 'Tes parents' : momHere() ? 'Ta mère' : dadHere() ? 'Ton père' : 'Ta grand-mère';
 const parentsV = (pl, sg) => dadHere() && momHere() ? pl : sg; // accord du verbe
+// rencontre mémorisée pour l'année : même prénom dans le texte et dans les choix
+function meet() {
+  if (S.flags.meet && S.flags.meet.at === S.age) return S.flags.meet;
+  const o = isDia() && chance(0.5) ? pick(['antilles', 'reunion', 'guyane']) : TBY[orig()].nm;
+  const name = makeName(o, sx('F', 'M')).split(' ')[0]; const age = S.age + ri(-3, 4);
+  const pool = ['shop', 'nurse', 'clerk', 'teacher', 'driver', 'construct', 'civil', 'hotel', 'tech', 'informal', 'student'].filter(j => !(sx('F', 'M') === 'M' && j === 'nurse'));
+  const jobId = age < 23 && chance(0.5) ? 'student' : pick(pool); const job = jobId === 'student' ? 'étudiant·e' : JOBS[jobId].n;
+  const where = pick(isDia() ? ['Rencontré·e à une soirée antillaise, à la fac, par une cousine.', 'Un collègue de l’hôpital, un ami d’ami.', 'Sur une appli. Vous avez ri des mêmes choses.'] : ['Rencontré·e au carnaval, chez des amis, à la plage.', 'Un·e ami·e d’enfance, revu·e par hasard au marché.', 'Sur une appli. Tout le monde se connaît, ici.']);
+  S.flags.meet = { at: S.age, name, age, jobId, job, where }; return S.flags.meet;
+}
 const payeur = () => dadHere() && momHere() ? 'tes parents paient' : momHere() ? 'ta mère paie' : dadHere() ? 'ton père paie' : 'ta grand-mère paie';
 
 function takeJob(id, pctHint) { const J = JOBS[id]; if (WORKING(S.job)) S.flags.lastJob = S.job; S.job = id; S.jobY = 0; S.pct = clamp(pctHint ?? (J.lo + rnd() * (J.hi - J.lo) * 0.4), J.lo, J.hi); S.flags.mainJob = S.flags.mainJob || id; S.flags.lastJob = id; S.stats.jobs = S.stats.jobs || []; if (!S.stats.jobs.includes(id)) S.stats.jobs.push(id); }
@@ -333,10 +343,10 @@ export const DECS = [
     ],
   },
   {
-    id: 'partner', a: [20, 45], gap: 3, c: () => !S.fam.partner && chance(S.focus === 'family' || S.focus === 'play' || S.focus === 'faith' ? 0.75 : S.focus === 'work' ? 0.25 : 0.45), title: () => 'Une rencontre', text: () => `${sx('Elle', 'Il')} s’appelle ${makeName(isDia() && chance(0.5) ? 'antilles' : TBY[orig()].nm, sx('F', 'M')).split(' ')[0]}.`,
-    choices: () => { const n = makeName(TBY[orig()].nm, sx('F', 'M')).split(' ')[0]; return [
-      { t: 'Se mettre ensemble', run: () => { S.fam.partner = { name: n, sex: sx('F', 'M'), age: S.age + ri(-3, 4), alive: true }; eff({ h: 6, so: 6 }); return `Tu te mets en couple avec ${n}.`; } },
-      { t: 'Se marier', run: () => { S.fam.partner = { name: n, sex: sx('F', 'M'), age: S.age + ri(-3, 4), alive: true }; S.fam.married = true; S.flags.wedAt = S.age; S.money -= 3000; eff({ h: 8, so: 8 }); return `Mariage avec ${n}. Toute la commune est là.`; } },
+    id: 'partner', a: [20, 45], gap: 3, c: () => !S.fam.partner && chance(S.focus === 'family' || S.focus === 'play' || S.focus === 'faith' ? 0.75 : S.focus === 'work' ? 0.25 : 0.45), title: () => 'Une rencontre', text: () => { const m = meet(); return `${sx('Elle', 'Il')} s’appelle ${m.name}, ${m.age} ans, ${m.job}. ${m.where}`; },
+    choices: () => { const m = meet(); return [
+      { t: `Se mettre ensemble avec ${m.name}`, run: () => { S.fam.partner = { name: m.name, sex: sx('F', 'M'), age: m.age, alive: true, job: m.jobId }; eff({ h: 6, so: 6 }); return `Tu te mets en couple avec ${m.name}.`; } },
+      { t: `Se marier avec ${m.name}`, run: () => { S.fam.partner = { name: m.name, sex: sx('F', 'M'), age: m.age, alive: true, job: m.jobId }; S.fam.married = true; S.flags.wedAt = S.age; S.money -= 3000; eff({ h: 8, so: 8 }); return `Mariage avec ${m.name}. Toute la commune est là.`; } },
       { t: 'Pas maintenant', run: () => 'Pas maintenant.' },
     ]; },
   },
