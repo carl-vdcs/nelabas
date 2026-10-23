@@ -327,7 +327,7 @@ let COMP = [];
 function runHeadless() {
   const me = S; const L = E.newLife({ paceMin: 10 }); L.phase = 'life'; L.auto = true;
   const h = { fire(e) { if (e.type === 'ev') { E.fireEvent(EVENTS, e.id); } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (L.pending) E.choose(Math.floor(E.rnd() * L.pending.choices.length)); } },
-    endYear() { E.endYear(h); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); }, onParentDeath() { }, onPartnerDeath() { } };
+    endYear() { E.endYear(h); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); }, onParentDeath() { }, onPartnerDeath() { }, onFamily() { } };
   E.planYear(EVENTS, DECS); let g = 0; while (L.phase === 'life' && g++ < 100000) { E.tick(L.yearSec / 10, h); if (L.pending) E.choose(Math.floor(E.rnd() * L.pending.choices.length)); }
   E.setState(me); return L;
 }
@@ -358,7 +358,8 @@ const hooks = {
   endYear() { E.endYear(hooks); if (S.phase === 'dead') showDeath(); },
   planYear() { E.planYear(EVENTS, DECS); renderAll(); save(); },
   die() { E.die(); },
-  onParentDeath(w) { S.flags.parentDiedY = S.age; feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : 'Ton père meurt.', 'loss')); },
+  onParentDeath(w) { feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : 'Ton père meurt.', 'loss')); renderFiche(); },
+  onFamily(items) { for (const it of items) feedItem(E.log(it.t, it.k, it.f)); renderFiche(); renderGauges(); },
   onPartnerDeath() { feedItem(E.log(`${S.fam.partner.name} meurt.`, 'loss')); },
 };
 function survivors() { const c = E.TBY[S.born]; const lt = E.lifeTable(c, S.sex); let l = 1; for (let x = 0; x < S.age; x++) l *= 1 - lt.q[x]; return `Sur 100 ${S.sex === 'F' ? 'filles nées' : 'garçons nés'} la même année ${c.article}, ${Math.round(l * 100)} sont encore là.`; }

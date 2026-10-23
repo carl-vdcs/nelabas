@@ -15,6 +15,7 @@ function runLife(opt = {}) {
     die() { E.die(); },
     onParentDeath(w) { S.flags.parentDiedY = S.age; E.log(w === 'mom' ? 'Ta mère meurt.' : 'Ton père meurt.', 'loss'); },
     onPartnerDeath() { E.log(`${S.fam.partner.name} meurt.`, 'loss'); },
+    onFamily(items) { for (const it of items) E.log(it.t, it.k, it.f); },
   };
   E.planYear(EVENTS, DECS);
   let guard = 0;

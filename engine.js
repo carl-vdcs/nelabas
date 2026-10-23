@@ -392,11 +392,11 @@ export function ncdYear() {
   if (a < 30) return;
   // diabète : prévalence cible c.dia à 60 ans ; risque annuel calibré dessus ; obésité/revenu/activité modulent
   const base = (c.dia / 100) / 30; // ~ sur 30 ans d'exposition
-  const k = (S.q <= 2 ? 1.4 : S.q >= 4 ? 0.7 : 1) * (S.focusW.sport || S.focusW.health ? 0.6 : 1) * (S.st.hl < 50 ? 1.3 : 1) * (S.sex === 'F' ? 1.15 : 1) * (S.flags.obese ? 1.8 : S.flags.sugar ? 1.15 : 1);
+  const k = (S.q <= 2 ? 1.4 : S.q >= 4 ? 0.7 : 1) * (S.focusW.sport || S.focusW.health ? 0.6 : 1) * (S.st.hl < 50 ? 1.3 : 1) * (S.sex === 'F' ? 1.15 : 1) * (S.flags.obese ? 1.8 : S.flags.sugar ? 1.15 : 1) * (S.flags.parentDia ? 2 : 1);
   if (S.focusW.health > 0.5) for (const k2 in S.conds) S.conds[k2].treated = true;
   if (!S.conds.dia && chance(base * k)) { S.conds.dia = { treated: chance(clamp(0.75 - (c.doc < 150 ? 0.3 : 0) - (S.q <= 2 ? 0.15 : 0), 0.2, 0.9)), at: a }; log(`Diagnostic : diabète de type 2.${S.conds.dia.treated ? ' Tu commences un traitement.' : ' Tu laisses traîner, le médecin est loin et le reste à charge pèse.'}`, 'bad', `${c.dia} % des adultes ${c.id === 'DIA' ? 'en Hexagone' : c.article} déclarent un diabète, contre 5,7 % en Hexagone (Santé publique France 2021)`); }
   // hypertension : prévalence déclarée du territoire (31,5 % en Martinique, 20,8 % à La Réunion, ~18 % en Hexagone) répartie sur 35 ans ; femmes plus touchées dans les DROM ; sel, surpoids, stress
-  if (!S.conds.htn && a >= 35) { const base = (c.htn / 100) / 35; const k = (S.sex === 'F' && c.id !== 'DIA' ? 1.2 : 1) * (S.flags.obese ? 1.6 : 1) * (S.q <= 2 ? 1.2 : 1) * (S.focusW.work > 0.5 ? 1.2 : 1) * (S.focusW.sport || S.focusW.health ? 0.7 : 1);
+  if (!S.conds.htn && a >= 35) { const base = (c.htn / 100) / 35; const k = (S.sex === 'F' && c.id !== 'DIA' ? 1.2 : 1) * (S.flags.obese ? 1.6 : 1) * (S.q <= 2 ? 1.2 : 1) * (S.focusW.work > 0.5 ? 1.2 : 1) * (S.focusW.sport || S.focusW.health ? 0.7 : 1) * (S.flags.parentHtn ? 1.5 : 1);
     if (chance(base * k)) { S.conds.htn = { treated: chance(0.8), at: a }; log(S.conds.htn.treated ? 'Hypertension diagnostiquée lors d’un contrôle. Traitement à vie.' : 'Hypertension diagnostiquée. Tu oublies souvent le traitement.', 'bad', c.id === 'DIA' ? null : `${String(c.htn).replace('.', ',')} % des adultes ${c.article} déclarent une hypertension, les femmes plus que les hommes (Santé publique France, Baromètre DROM 2021)`); } }
 }
 
@@ -436,9 +436,10 @@ export function endYear(hooks) {
   st.so = clamp(st.so + (soTarget - st.so) * 0.2, 0, 100);
   let hTarg = 50 + (c.wh - 6) * 8 + (st.so - 50) * 0.3 + (st.hl - 60) * 0.2 + (S.pct - 0.4) * 20 - (S.job === 'seeking' && a >= 20 ? 8 : 0) - (S.debt > 0 ? 4 : 0) - (S.flags.depress ? 10 : 0);
   st.h = clamp(st.h + (hTarg - st.h) * 0.2, 0, 100);
-  // famille
-  if (S.fam.mom.alive) { S.fam.mom.age++; if (chance(lifeTable(c, 'F').q[Math.min(110, S.fam.mom.age)] * 1.2)) { S.fam.mom.alive = false; hooks.onParentDeath('mom'); } }
-  if (S.fam.dad.alive) { S.fam.dad.age++; if (chance(lifeTable(c, 'M').q[Math.min(110, S.fam.dad.age)] * 1.2)) { S.fam.dad.alive = false; hooks.onParentDeath('dad'); } }
+  // famille : les parents vivent leur vie, et ça retombe sur toi
+  const famEv = parentYear(c, a); if (famEv.length) hooks.onFamily(famEv);
+  if (S.fam.mom.alive) { S.fam.mom.age++; if (chance(lifeTable(c, 'F').q[Math.min(110, S.fam.mom.age)] * (S.fam.mom.conds && Object.keys(S.fam.mom.conds).length ? 1.6 : 1.1))) { S.fam.mom.alive = false; parentDeath(c, 'mom'); hooks.onParentDeath('mom'); } }
+  if (S.fam.dad.alive) { S.fam.dad.age++; if (chance(lifeTable(c, 'M').q[Math.min(110, S.fam.dad.age)] * (S.fam.dad.conds && Object.keys(S.fam.dad.conds).length ? 1.6 : 1.1))) { S.fam.dad.alive = false; parentDeath(c, 'dad'); hooks.onParentDeath('dad'); } }
   if (S.fam.partner && S.fam.partner.alive) { S.fam.partner.age++; if (chance(lifeTable(c, S.fam.partner.sex).q[Math.min(110, S.fam.partner.age)])) { S.fam.partner.alive = false; hooks.onPartnerDeath(); } }
   for (const k of S.fam.kids) if (k.alive) { k.age++; }
   // retraite
@@ -449,6 +450,38 @@ export function endYear(hooks) {
   S.age++; S.t = 0; hooks.planYear();
 }
 
+function parentDeath(c, who) {
+  const a = S.age; const P = S.fam[who];
+  eff({ h: a < 18 ? -12 : -8, so: a < 18 ? -5 : -3 });
+  if (a < 18) { S.famPct = clamp(S.famPct - (who === 'dad' && !P.absent ? 0.2 : 0.15), 0.03, 0.97); if (!S.fam.mom.alive && (!S.fam.dad.alive || S.fam.dad.absent)) S.flags.orphan = 1; }
+  if (a >= 25 && chance(0.5)) { const h = incomeAt(c, S.famPct) * (S.flags.houseHome || c.id !== 'DIA' ? 1.5 : 0.8); S.money += h; S.flags.inherit = (S.flags.inherit || 0) + h; }
+  S.flags.parentDiedY = a;
+}
+function parentYear(c, a) {
+  const out = []; const F = S.fam; const kidHome = a < 18;
+  for (const who of ['mom', 'dad']) {
+    const P = F[who]; if (!P.alive || (who === 'dad' && P.absent)) continue;
+    const nm = who === 'mom' ? 'Ta mère' : 'Ton père'; const nmL = who === 'mom' ? 'ta mère' : 'ton père';
+    const pa = P.age; P.conds = P.conds || {};
+    // emploi : perte selon le territoire, retour selon le taux d'emploi
+    if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && chance(0.025 * (c.unemp / 10))) { P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
+    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${JOBS[P.job].n}.`, k: 'good' }); }
+    // retraite
+    if (pa === 64 && WORKING(P.job)) { P.job = 'retired'; out.push({ t: `${nm} prend sa retraite.` }); }
+    // maladies : mêmes prédispositions que toi, selon le territoire ; l'hérédité te suit
+    if (!P.conds.dia && pa >= 40 && chance((c.dia / 100) / 25 * (S.q <= 2 ? 1.3 : 1))) { P.conds.dia = 1; S.flags.parentDia = 1; out.push({ t: `${nm} est diagnostiqué·e diabétique.${kidHome ? ' Les repas changent, un peu.' : ''}`, k: 'bad', f: 'Avoir un parent diabétique de type 2 multiplie le risque par 2 à 3 ; aux Antilles et à La Réunion, le diabète touche souvent toute une famille (Santé publique France)' }); }
+    if (!P.conds.htn && pa >= 40 && chance((c.htn / 100) / 30)) { P.conds.htn = 1; S.flags.parentHtn = 1; if (chance(0.5)) out.push({ t: `${nm} est sous traitement pour la tension.` }); }
+    if (P.conds.htn && pa >= 55 && chance(0.012)) { P.conds.avc = 1; if (kidHome) eff({ h: -6, so: 2 }); else eff({ h: -5 }); S.flags.parentDep = 1; out.push({ t: `${nm} fait un AVC. ${kidHome ? 'Tu apprends à aider.' : 'Tu deviens aidant·e, à distance ou pas.'}`, k: 'bad' }); }
+    if (P.conds.dia && pa >= 55 && chance(0.02)) { P.conds.amp = 1; out.push({ t: `${nm} est amputé·e d’un pied. Le diabète.`, k: 'bad', f: `Hospitalisations pour amputation liée au diabète : ${({ MTQ: '×1,5', REU: '×1,3' })[c.id] || 'plus fréquentes'} par rapport à la France (Santé publique France)` }); }
+    // départ en Hexagone d'un parent (enfants confiés aux grands-parents)
+    if (kidHome && c.id !== 'DIA' && !P.gone && a >= 3 && a <= 14 && S.q <= 2 && chance(0.012)) { P.gone = 1; eff({ so: -6, h: -5 }); S.flags.raisedByGm = 1; out.push({ t: `${nm} part travailler en Hexagone. Tu restes chez ta grand-mère. « C’est pour quelques mois. »`, k: 'bad', f: 'Des milliers d’enfants antillais et réunionnais ont grandi chez une grand-mère pendant que les parents travaillaient en Hexagone (INED, enquête Migrations, famille et vieillissement)' }); }
+  }
+  // séparation des parents
+  if (kidHome && F.mom.alive && F.dad.alive && !F.dad.absent && !F.sep && a >= 2 && chance(0.03)) { F.sep = 1; F.dad.absent = true; eff({ h: -6, so: -3 }); S.famPct = clamp(S.famPct - 0.15, 0.03, 0.97); out.push({ t: 'Tes parents se séparent. Ton père part. Il passe le dimanche, puis moins.', k: 'bad', f: c.id === 'DIA' ? null : `Familles monoparentales ${c.article} : ${({ GLP: '42 %', MTQ: '40 %', GUF: '50 %', REU: '33 %', MYT: '30 %' })[c.id] || 'plus d’un tiers'} des familles avec enfants, une mère seule le plus souvent (INSEE, approx)` }); }
+  // vieillesse et dépendance : tu deviens aidant·e
+  for (const who of ['mom', 'dad']) { const P = F[who]; if (!P.alive || (who === 'dad' && P.absent)) continue; if (P.age >= 80 && !P.dep && chance(0.08)) { P.dep = 1; S.flags.carer = 1; eff({ h: -3, hl: -2, so: 2 }); out.push({ t: `${who === 'mom' ? 'Ta mère' : 'Ton père'} ne peut plus rester seul·e. ${S.cur !== S.born && S.born !== 'DIA' ? 'Tu es à 7 000 km. Ta sœur gère, tu paies.' : 'Tu passes tous les jours.'}`, k: 'bad', f: c.id === 'DIA' ? null : `Les places en EHPAD sont deux fois plus rares dans les DROM qu’en Hexagone ; la prise en charge des aînés repose sur la famille (DREES, approx)` }); } }
+  return out;
+}
 export function die(forced, label) {
   const c = C();
   const k = forced || pickCause(c, S.age, S.sex, S);
