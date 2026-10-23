@@ -92,7 +92,7 @@ select{font:inherit;background:var(--sur);color:var(--ink);border:1px solid var(
 #draw{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 16px}
 #draw .lbl{color:var(--mut);font-size:13px;margin-bottom:10px}
 #draw h1{font-size:clamp(44px,11vw,80px);font-weight:300;margin:0;line-height:1.05;animation:pop .6s ease-out}
-#draw .p{color:var(--ink2);margin-top:12px}
+#draw .p{color:var(--ink2);margin-top:12px;min-height:24px}
 @keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 #acte{padding:28px 0 60px}
 #acte h1{font-size:38px;margin:0 0 14px;font-weight:300}
@@ -398,9 +398,12 @@ $('#born').onclick = () => {
   S = E.newLife({ paceMin }); S.phase = 'birth'; S.home = $('#home').value || null;
   const c = E.TBY[S.born]; const tot = TERRITORIES.reduce((x, t) => x + t.b, 0);
   $('#intro').classList.add('hidden'); $('#draw').classList.remove('hidden'); window.scrollTo(0, 0);
-  $('#drawName').textContent = c.id === 'DIA' ? 'Hexagone' : c.nom; $('#drawP').textContent = `Probabilité : ${(c.b / tot * 100).toFixed(1).replace('.', ',')} %${c.id === 'DIA' ? ' · de parents ' + E.TBY[S.origin].gentF + 's' : ''}`;
+  // roulette : les territoires défilent, ralentissent, puis le tiré se fixe
+  const names = TERRITORIES.map(t => t.id === 'DIA' ? 'Hexagone' : t.nom); const el = $('#drawName'); el.style.animation = 'none'; el.style.color = 'var(--mut)'; $('#drawP').textContent = '';
+  let i = Math.floor(Math.random() * names.length), delay = 60, n = 0; const finalName = c.id === 'DIA' ? 'Hexagone' : c.nom;
+  const step = () => { el.textContent = names[i % names.length]; i++; n++; delay *= 1.12; if (delay < 420) setTimeout(step, delay); else { el.textContent = finalName; el.style.color = 'var(--ink)'; el.style.animation = 'pop .5s ease-out'; $('#drawP').textContent = `Probabilité : ${(c.b / tot * 100).toFixed(1).replace('.', ',')} %${c.id === 'DIA' ? ' · de parents ' + E.TBY[S.origin].gentF + 's' : ''}`; setTimeout(showActe, 2200); } };
+  setTimeout(step, 200);
   COMP = []; for (let i = 0; i < 4; i++) COMP.push(runHeadless());
-  setTimeout(showActe, 2600);
 };
 function showActe() {
   const c = E.TBY[S.born], o = E.TBY[S.origin]; const d = new Date(); const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
