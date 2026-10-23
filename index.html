@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cloudflareinsights.com; manifest-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Né là-bas · Une vie en outre-mer, dans les vrais chiffres</title>
 <meta name="description" content="Simulation de vie gratuite : tu nais au hasard en Guadeloupe, Martinique, Guyane, à La Réunion, à Mayotte ou en Hexagone de parents ultramarins, et tu vis cette vie jusqu’au bout dans les statistiques réelles de l’INSEE et de Santé publique France.">
@@ -189,8 +189,9 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
   <div class="opt"><label>Durée d’une vie</label><div class="seg" id="pace"><button aria-pressed="false" data-v="30">Environ 30 min</button><button aria-pressed="true" data-v="60">Environ 1 h</button><button aria-pressed="false" data-v="90">Environ 1 h 30</button></div><div class="small" style="margin-top:6px">C’est le temps pour vivre jusqu’à l’espérance de vie. Avec 1 h, une année dure environ 45 s. Tu peux mettre en pause, accélérer jusqu’à ×16, ou passer une année.</div></div>
   <div class="opt"><label>Toi, tu es né·e où ? (facultatif, pour comparer à la fin)</label><select id="home"><option value="">Je ne dis pas</option><option value="GLP">Guadeloupe</option><option value="MTQ">Martinique</option><option value="GUF">Guyane</option><option value="REU">La Réunion</option><option value="MYT">Mayotte</option><option value="DIA">En Hexagone, de parents ultramarins</option><option value="HEX">En Hexagone, sans lien avec l’outre-mer</option></select></div>
   <button class="cta" id="born">Naître</button>
+  <button class="ghost hidden" id="resume" style="margin-top:8px"></button>
   <p class="small">Sans inscription. La mort, la maladie, les violences et le deuil arrivent ici aussi souvent que dans les statistiques, sans scène. Dès 15 ans. Si ça pèse : 3114 (écoute, 24h/24), 3919 (violences).</p>
-  <p class="small">Vie privée : pas de compte, pas de cookie, pas de mesure d’audience ; tes vies et tes réponses restent dans ton navigateur, rien n’est envoyé. Les polices sont chargées depuis Google Fonts.</p>
+  <p class="small">Vie privée : pas de compte, pas de cookie ; tes vies et tes réponses restent dans ton navigateur. Seule une mesure d’audience anonyme (Cloudflare Web Analytics, sans cookie ni identifiant) compte les visites. Les polices sont chargées depuis Google Fonts.</p>
   <p class="small">Chiffres : INSEE, Santé publique France, INED, DREES, Fnors, SSMSI. <a href="#" id="srcLink">Voir les sources et les territoires</a> · <a href="#" id="newsLink">Nouveautés</a> · <a href="#" id="pastLink">Mes vies passées</a></p>
 </section>
 
@@ -228,6 +229,8 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
 <section id="dead" class="wrap hidden"></section>
 <div id="sheet" class="hidden"></div>
 
+<!-- Cloudflare Web Analytics (sans cookie) : le token est injecté ci-dessous -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "41fc4dd846334739bae55f7349eda295", "spa": true}'></script>
 <script type="module">
 import * as E from './engine.js';
 import { EVENTS, DECS, REFLECT } from './events.js';
@@ -238,6 +241,8 @@ const $ = s => document.querySelector(s);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 let S = null, paceMin = 60, raf = null, last = 0;
+// événements de jeu (naissance, mode, mort, partage) : comptés sans cookie via le beacon Cloudflare quand il est présent
+function track(name, data) { try { if (!document.querySelector('script[data-cf-beacon]')) return; const q = data ? '?' + Object.entries(data).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&') : ''; history.pushState(null, '', '/ev/' + name + q); history.replaceState(null, '', '/'); } catch (e) { } } // le beacon en mode SPA compte chaque pushState comme une page vue : /ev/start, /ev/death…
 // compteurs d'accueil : ~33 700 naissances/an dans les 5 DROM + diaspora ≈ 38 700 → 1 toutes les 13,6 min ; décès ≈ 15 800/an → 1 toutes les 33 min
 const t0 = Date.now(); setInterval(() => { const m = (Date.now() - t0) / 60000; $('#cBorn').textContent = Math.floor(m / 13.6); $('#cDead').textContent = Math.floor(m / 33); }, 1000);
 $('#pace').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; paceMin = +b.dataset.v; for (const x of $('#pace').children) x.setAttribute('aria-pressed', x === b); });
@@ -362,7 +367,7 @@ const hooks = {
     else if (e.type === 'reflect') { if (!S.auto) showReflect(e.id); }
   },
   endYear() { E.endYear(hooks); if (S.phase === 'dead') showDeath(); },
-  planYear() { E.planYear(EVENTS, DECS); renderAll(); save(); },
+  planYear() { E.planYear(EVENTS, DECS); renderAll(); saveCur(); },
   die() { E.die(); },
   onParentDeath(w) { feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : 'Ton père meurt.', 'loss')); renderFiche(); },
   onFamily(items) { for (const it of items) feedItem(E.log(it.t, it.k, it.f)); renderFiche(); renderGauges(); },
@@ -404,7 +409,7 @@ $('#next').onclick = () => { if (!S || S.phase !== 'life' || S.pending) return; 
 
 // ---------- naissance : tirage → acte de naissance → vie ----------
 $('#born').onclick = () => {
-  const sd = (location.hash.match(/graine=(\d+)/) || [])[1]; const s0 = sd ? +sd : Math.floor(Math.random() * 2 ** 31); E.seed(s0); S = E.newLife({ paceMin }); S.seed0 = s0; S.seedUsed = sd ? +sd : null; S.phase = 'birth'; S.home = $('#home').value || null; location.hash = '';
+  const sd = (location.hash.match(/graine=(\d+)/) || [])[1]; clearCur(); const s0 = sd ? +sd : Math.floor(Math.random() * 2 ** 31); E.seed(s0); S = E.newLife({ paceMin }); S.seed0 = s0; S.seedUsed = sd ? +sd : null; S.phase = 'birth'; S.home = $('#home').value || null; location.hash = '';
   const c = E.TBY[S.born]; const tot = TERRITORIES.reduce((x, t) => x + t.b, 0);
   $('#intro').classList.add('hidden'); $('#draw').classList.remove('hidden'); window.scrollTo(0, 0);
   // roulette : les territoires défilent, ralentissent, puis le tiré se fixe
@@ -428,13 +433,13 @@ function showActe() {
   <p class="small">En automatique, les décisions sont prises pour toi selon un tempérament tiré au sort, et tu peux reprendre la main à tout moment avec le bouton « auto ».</p>`;
   $('#draw').classList.add('hidden'); $('#acte').classList.remove('hidden'); window.scrollTo(0, 0);
   SCENE2 = makeScene($('#scene0')); SCENE2.set(sceneState());
-  $('#startAuto').onclick = () => { S.auto = true; S.lean = pick(['prudent', 'ambitieux', 'familial', 'curieux']); $('#startLife').click(); };
-  $('#startLife').onclick = () => { SCENE2.stop(); S.phase = 'life'; $('#acte').classList.add('hidden'); $('#life').classList.remove('hidden'); $('#feed').innerHTML = ''; window.scrollTo(0, 0); E.planYear(EVENTS, DECS); renderAll(); last = 0; if (!raf) raf = requestAnimationFrame(loop); };
+  $('#startAuto').onclick = () => { S.auto = true; S.lean = pick(['prudent', 'ambitieux', 'familial', 'curieux']); track('start', { mode: 'auto', t: S.born }); $('#startLife').click(); };
+  $('#startLife').onclick = () => { if (!S.auto) track('start', { mode: 'manuel', t: S.born }); SCENE2.stop(); S.phase = 'life'; $('#acte').classList.add('hidden'); $('#life').classList.remove('hidden'); $('#feed').innerHTML = ''; window.scrollTo(0, 0); E.planYear(EVENTS, DECS); renderAll(); last = 0; if (!raf) raf = requestAnimationFrame(loop); };
 }
 
 // ---------- mort ----------
 function showDeath() {
-  cancelAnimationFrame(raf); raf = null; if (SCENE) SCENE.stop(); save(true);
+  cancelAnimationFrame(raf); raf = null; if (SCENE) SCENE.stop(); save(true); track('death', { age: S.deathAt.age, t: S.born });
   const s = E.summary(); const c = s.born; const cur = s.died;
   const home = S.home && S.home !== 'HEX' ? E.TBY[S.home] : null;
   const yrs = s.years; const w = 520, h = 100; const pts = k => yrs.map((y, i) => `${(i / Math.max(1, yrs.length - 1) * w).toFixed(1)},${(h - y[k] / 100 * h).toFixed(1)}`).join(' ');
@@ -469,7 +474,7 @@ function showDeath() {
   $('#life').classList.add('hidden'); $('#dead').classList.remove('hidden'); window.scrollTo(0, 0);
   $('#again').onclick = () => location.reload();
   const ag = $('#againSame'); if (ag) ag.onclick = () => { location.hash = 'graine=' + (S.seedUsed || S.seed0); location.reload(); };
-  $('#share').onclick = () => shareCard(s);
+  $('#share').onclick = () => { track('share'); shareCard(s); };
   $('#srcLink2').onclick = e => { e.preventDefault(); showSources(); };
 }
 
@@ -501,7 +506,13 @@ function showSources() {
   sheet(`<h2>Les territoires, en chiffres</h2><div style="overflow:auto"><table style="font-size:13px;border-collapse:collapse;width:100%"><tr style="color:var(--mut)"><th align=left>Territoire</th><th>Naiss./an</th><th>Esp. vie</th><th>Mort. inf. ‰</th><th>Pauvreté</th><th>Diabète</th><th>Chlordécone</th></tr>${rows}</table></div><p class="small">Hexagone : ${HEXAGONE.le} ans, ${HEXAGONE.im} ‰, ${HEXAGONE.pov} %, ${HEXAGONE.dia} %. Les naissances « diaspora » sont une estimation. Certaines valeurs (notées approx dans le code) restent à affiner.</p><h2 style="font-size:20px">Sources</h2><ul style="padding-left:18px;font-size:14px">${src}</ul><div class="row"><button class="primary" id="close">Fermer</button></div>`).querySelector('#close').onclick = closeSheet;
 }
 $('#srcLink').onclick = e => { e.preventDefault(); showSources(); };
-function save(final) { try { if (!final) return; const past = JSON.parse(localStorage.getItem('nlb_lives') || '[]'); const s = E.summary(); past.unshift({ name: s.name, age: s.age, cause: s.cause, born: s.born.nom, city: s.city, d: Date.now() }); localStorage.setItem('nlb_lives', JSON.stringify(past.slice(0, 50))); } catch (e) { } }
+// sauvegarde de la vie en cours (chaque année, hors décision ouverte) et reprise à l'ouverture
+function saveCur() { try { if (!S || S.phase !== 'life' || S.pending) return; localStorage.setItem('nlb_cur', JSON.stringify({ S, COMP, paceMin, d: Date.now() })); } catch (e) { } }
+function clearCur() { try { localStorage.removeItem('nlb_cur'); } catch (e) { } }
+function resumeCur() { try { const raw = localStorage.getItem('nlb_cur'); if (!raw) return false; const o = JSON.parse(raw); if (!o || !o.S || o.S.phase !== 'life') return false; S = o.S; COMP = o.COMP || []; paceMin = o.paceMin || 60; E.setState(S); S.pending = null; S.queue = []; S.t = 0; S.paused = false; $('#intro').classList.add('hidden'); $('#life').classList.remove('hidden'); $('#feed').innerHTML = ''; for (const l of S.log.slice(-60)) feedItem(l); E.planYear(EVENTS, DECS); renderAll(); last = 0; if (!raf) raf = requestAnimationFrame(loop); track('resume'); return true; } catch (e) { return false; } }
+function offerResume() { try { const raw = localStorage.getItem('nlb_cur'); if (!raw) return; const o = JSON.parse(raw); if (!o || !o.S || o.S.phase !== 'life') return; const c = E.TBY[o.S.cur]; const b = $('#resume'); b.classList.remove('hidden'); b.textContent = `Reprendre : ${o.S.name}, ${o.S.age} ans, ${o.S.city} (${o.S.away ? 'Québec' : c.id === 'DIA' ? 'Hexagone' : c.nom})`; b.onclick = () => { if (!resumeCur()) b.classList.add('hidden'); }; } catch (e) { } }
+function save(final) { try { if (!final) return; clearCur(); const past = JSON.parse(localStorage.getItem('nlb_lives') || '[]'); const s = E.summary(); past.unshift({ name: s.name, age: s.age, cause: s.cause, born: s.born.nom, city: s.city, d: Date.now() }); localStorage.setItem('nlb_lives', JSON.stringify(past.slice(0, 50))); } catch (e) { } }
+offerResume();
 $('#pastLink').onclick = e => { e.preventDefault(); let past = []; try { past = JSON.parse(localStorage.getItem('nlb_lives') || '[]'); } catch (e) { } sheet(`<h2>Mes vies passées</h2>${past.length ? '<ul style="padding-left:18px">' + past.map(p => `<li>${esc(p.name)}, ${p.age} ans, ${esc(p.born)} — ${esc(p.cause || '')}</li>`).join('') + '</ul>' : '<p>Aucune vie encore. Elles ne sont gardées que dans ce navigateur.</p>'}<div class="row"><button class="primary" id="close">Fermer</button></div>`).querySelector('#close').onclick = closeSheet; };
 </script>
 </body>

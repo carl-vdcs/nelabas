@@ -14,5 +14,10 @@ async function life(auto) {
   const age = await p.$eval('#age', e => e.textContent).catch(() => '?'); const feed = await p.$$eval('#feed li', l => l.length).catch(() => 0);
   console.log(`${auto ? 'auto  ' : 'manuel'} · âge ${age} · ${feed} lignes de récit`); if (feed < 10) errs.push('récit trop court en mode ' + (auto ? 'auto' : 'manuel')); await p.close();
 }
-await life(false); await life(true); await b.close(); srv.close();
+await life(false); await life(true);
+// reprise de session : une vie entamée est proposée au rechargement
+{ const p = await b.newPage({ viewport: { width: 1280, height: 800 } }); p.on('pageerror', e => errs.push('reprise: ' + e.message)); await p.goto(url); await p.waitForTimeout(500); await p.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await p.click('#born'); await p.waitForTimeout(3800); await p.click('#startLife'); await p.waitForTimeout(400); for (let i = 0; i < 8; i++) { await p.click('#next', { timeout: 2000 }).catch(() => {}); await p.waitForTimeout(80); if (await p.$('#sheet.sheet')) await p.click('#sheet button', { timeout: 2000 }).catch(() => {}); }
+  const name = await p.$eval('#nm', e => e.textContent).catch(() => ''); await p.reload(); await p.waitForTimeout(600); const r = await p.$('#resume:not(.hidden)'); if (!r) errs.push('bouton Reprendre absent après rechargement'); else { await r.click(); await p.waitForTimeout(600); const n2 = await p.$eval('#nm', e => e.textContent).catch(() => ''); if (n2 !== name) errs.push(`reprise : ${n2} ≠ ${name}`); else console.log(`reprise · ${name} retrouvé·e`); } await p.close(); }
+await b.close(); srv.close();
 console.log(errs.length ? '✗ erreurs :\n  ' + errs.slice(0, 10).join('\n  ') : '✓ aucune erreur navigateur'); process.exit(errs.length ? 1 : 0);

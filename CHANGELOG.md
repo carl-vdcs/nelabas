@@ -9,3 +9,5 @@
 - Amis nommés, grands-parents, fratrie, pannes, bilan annuel du patrimoine, petits bonheurs, fêtes par territoire.
 - Linter de récits (30 règles), calibrage et CI GitHub Actions.
 - Raccourcis clavier (espace, →, 1-5, Échap), bouton « Revivre la même naissance », panneau Nouveautés.
+- Reprise de la vie en cours au retour sur le site (sauvegarde automatique chaque année, dans ton navigateur).
+- Mesure d'audience anonyme sans cookie (Cloudflare Web Analytics).
