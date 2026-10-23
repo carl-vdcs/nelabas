@@ -426,7 +426,7 @@ export function deathProb() {
   const norm = [1, 2, 3, 4, 5].reduce((s, k) => s + Math.exp(-g * (k - 3)), 0) / 5;
   m *= Math.exp(-g * (qe - 3)) / norm;
   if (a >= 25) { const sp = (S.sex === 'F' ? c.sf : c.sm) / 100; m *= (S.smoker ? 1.7 : 1) / (1 + 0.7 * sp); }
-  for (const k in S.conds) m *= k === 'scd' ? (a < 5 ? 2.5 : a < 40 ? 1.8 : 1.4) : S.conds[k].treated ? 1.05 : 1.3;
+  for (const k in S.conds) m *= k === 'scd' ? (a < 5 ? 2.5 : a < 40 ? 1.8 : 1.4) : (k === 'endo' || k === 'fib') ? 1.0 : S.conds[k].treated ? 1.05 : 1.3;
   if (S.alc && a >= 18) m *= 1.5;
   if (S.flags.chlorHigh && a >= 45) m *= 1.08;
   if (a >= 25) { const alone = !S.fam.partner && !S.fam.kids.length && !S.fam.mom.alive; if (alone) m *= 1.2; if (S.st.so < 40) m *= 1.1; }

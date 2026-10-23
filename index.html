@@ -445,7 +445,7 @@ function showDeath() {
       <dt>Famille</dt><dd>${s.married ? 'marié·e' : 'célibataire'}${s.kids ? `, ${s.kids} enfant${s.kids > 1 ? 's' : ''}` : ''}</dd>
       ${s.mig ? `<dt>Départ</dt><dd>en Hexagone à ${S.migY} ans${s.died.id !== 'DIA' ? ', puis retour' : ''}${s.remit ? ` · ${Math.round(E.eurMois(E.TBY.DIA, s.remit) * 12).toLocaleString('fr')} € envoyés au pays` : ''}</dd>` : ''}
       ${s.chlor ? `<dt>Chlordécone</dt><dd>présent dans le sang${S.flags.chlorHigh ? ', au-dessus du seuil' : ''}</dd>` : ''}
-      ${s.conds.length ? `<dt>Santé</dt><dd>${s.conds.map(k => ({ dia: 'diabète', htn: 'hypertension', can: 'cancer', kid: 'insuffisance rénale', scd: 'drépanocytose' })[k] || k).join(', ')}</dd>` : ''}
+      ${s.conds.length ? `<dt>Santé</dt><dd>${s.conds.map(k => ({ dia: 'diabète', htn: 'hypertension', can: 'cancer', kid: 'insuffisance rénale', scd: 'drépanocytose', endo: 'endométriose', fib: 'fibromes' })[k] || k).join(', ')}</dd>` : ''}
       <dt>Meilleure année</dt><dd>${s.happiest ? s.happiest.a + ' ans' : '—'}</dd>
     </dl></div>
     <div class="cert"><h3>Une vie en courbes</h3><svg class="chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="#F2B33D" stroke-width="2" points="${pts('h')}"/><polyline fill="none" stroke="#6FBF8A" stroke-width="2" points="${pts('hl')}"/><polyline fill="none" stroke="#7FA39C" stroke-width="1.5" stroke-dasharray="3 3" points="${pts('so')}"/></svg><div class="small"><span style="color:#F2B33D">— bonheur</span> &nbsp; <span style="color:#6FBF8A">— santé</span> &nbsp; <span style="color:#7FA39C">- - liens</span></div></div>
