@@ -174,6 +174,8 @@ export function causeWeights(c, a, sex, S) {
   if (sex === 'M' && a >= 50 && S && S.flags.chlor) { w.pros = (w.can || 10) * 0.6; }
   if (S) {
     if (S.smoker) { w.can = (w.can || 5) * 1.6; w.copd = (w.copd || 2) * 2.5; w.ihd = (w.ihd || 3) * 1.4; }
+    if (S.flags.alc) { w.cir = (w.cir || 2) * 4; w.road = (w.road || 3) * 1.8; w.suic = (w.suic || 2) * 1.6; }
+    if (S.flags.street || S.flags.record) { w.hom = (w.hom || 2) * 3; }
     if (S.conds.dia) { w.dia = (w.dia || 3) * 3; w.kid = (w.kid || 2) * 2.5; w.ihd = (w.ihd || 3) * 1.5; }
     if (S.conds.htn) { w.str = (w.str || 3) * (S.conds.htn.treated ? 1.5 : 2.5); w.ihd = (w.ihd || 3) * 1.5; w.kid = (w.kid || 1) * 1.5; }
     if (S.conds.scd) { w.scd = a < 40 ? 25 : 10; }
@@ -326,7 +328,7 @@ export function planYear(EVENTS, DECS) {
   const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
   // priorité : décisions jamais vues, puis famille, puis le reste ; un peu de hasard pour ne pas figer l'ordre
   const nDec = id => (S.decisions || []).filter(x => x.id === id).length;
-  const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone'];
+  const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone', 'schquit', 'crime', 'moral', 'alcquit', 'gambquit', 'noschool', 'bande'];
   decs.sort((x, y) => (nDec(x.id) - nDec(y.id)) + (FAM.includes(y.id) ? 0.5 : 0) - (FAM.includes(x.id) ? 0.5 : 0) + (rnd() - 0.5));
   const nMax = S.age >= 18 && chance(0.5) ? 3 : 2; // adulte : jusqu'à trois décisions par an
   decs.slice(0, nMax).forEach((d, i) => queue(0.25 + i * 0.25 + rnd() * 0.12, 'dec', d.id));
@@ -406,6 +408,7 @@ export function finances() {
   const loyer = c.id === 'DIA' && S.flags.hexRegion ? (HEX[S.flags.hexRegion].loyer - 0.75) * 0.1 : 0; // Île-de-France : loyers qui mangent l'épargne ; province : un peu d'air
   const saveRate = clamp(0.02 + (S.pct - 0.3) * 0.35 - kids * 0.03 - (c.price || 0) / 100 * 0.12 - loyer + (S.focusW.work || 0) * 0.03 - (S.focusW.hobby || 0) * 0.02, 0, 0.3); // pas de déficit structurel : la pauvreté, c'est zéro épargne, pas une dette infinie
   let flow = hh * saveRate;
+  if (S.flags.gamb) flow -= hh * 0.15; if (S.flags.alc) flow -= Math.min(hh * 0.06, 1500);
   // crédit immobilier : remboursé sur 25 ans dans les dépenses
   if (S.mortgage && S.mortgage.left > 0) { const pay = Math.min(S.mortgage.left, S.mortgage.annual); S.mortgage.left -= pay; S.debt = Math.max(0, S.debt - pay); flow -= pay * 0.6; } // 40 % du crédit remplace un loyer
   // coûts durs : enfants qui étudient loin, voiture, entretien du logement
@@ -446,6 +449,7 @@ export function deathProb() {
   const norm = [1, 2, 3, 4, 5].reduce((s, k) => s + Math.exp(-g * (k - 3)), 0) / 5;
   m *= Math.exp(-g * (qe - 3)) / norm;
   if (a >= 25) { const sp = (S.sex === 'F' ? c.sf : c.sm) / 100; m *= (S.smoker ? 1.7 : 1) / (1 + 0.7 * sp); }
+  if (S.flags.alc) m *= 1.6; if (S.flags.prisonUntil) m *= 1.3;
   for (const k in S.conds) m *= k === 'scd' ? (a < 5 ? 2.5 : a < 40 ? 1.8 : 1.4) : (k === 'endo' || k === 'fib') ? 1.0 : S.conds[k].treated ? 1.05 : 1.3;
   if (S.alc && a >= 18) m *= 1.5;
   if (S.flags.chlorHigh && a >= 45) m *= 1.08;
@@ -453,7 +457,7 @@ export function deathProb() {
   if (c.doc < 150) m *= 1.05;
   if (a >= 85) m = Math.pow(m, clamp(1 - (a - 85) / 20, 0.3, 1));
   // les indicateurs du territoire (pauvreté, soins, diabète) sont déjà dans le/im : on recentre m autour de 1
-  m *= 0.7;
+  m *= 0.8;
   return 1 - Math.pow(1 - q, clamp(m, 0.25, 6));
 }
 
