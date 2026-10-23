@@ -337,6 +337,7 @@ export function newLife(opt = {}) {
     facts: [],
   };
   S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city); S.flags.skin = skinFromRoots(roots, elite);
+  S.home = { with: 'parents', since: 0 }; // foyer explicite (modèle 1in8b withParents/homeOthers) : parents | alone | coloc | partner | own | family | ehpad
   S.famIncome = 0; famIncomeCalc(c); S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
   if (!S.elite) S.q = clamp(Math.ceil(S.famPct * 5), 1, 5); // le quintile affiché suit le revenu réel des parents
   // grands-parents : pour un enfant né en Hexagone, ils sont souvent restés au pays (sauf génération BUMIDOM déjà installée)
@@ -443,7 +444,7 @@ export function finances() {
   const hh = S.income + ptInc;
   const kids = S.fam.kids.filter(k => k.alive && k.age < 18 && !k.far).length;
   // taux d'épargne : ~0 pour les bas revenus, jusqu'à 25 % en haut ; la vie chère rogne l'épargne mais ne crée pas de dette structurelle
-  const loyer = c.id === 'DIA' && S.flags.hexRegion ? (HEX[S.flags.hexRegion].loyer - 0.75) * 0.1 : 0; // Île-de-France : loyers qui mangent l'épargne ; province : un peu d'air
+  const loyer = (c.id === 'DIA' && S.flags.hexRegion ? (HEX[S.flags.hexRegion].loyer - 0.75) * 0.1 : 0) - (S.home && (S.home.with === 'parents' || S.home.with === 'family') ? 0.08 : 0) - (S.home && S.home.with === 'coloc' ? 0.03 : 0); // chez les parents : pas de loyer // Île-de-France : loyers qui mangent l'épargne ; province : un peu d'air
   const saveRate = clamp(0.02 + (S.pct - 0.3) * 0.35 - kids * 0.03 - (c.price || 0) / 100 * 0.12 - loyer + (S.focusW.work || 0) * 0.03 - (S.focusW.hobby || 0) * 0.02, 0, 0.3); // pas de déficit structurel : la pauvreté, c'est zéro épargne, pas une dette infinie
   let flow = hh * saveRate;
   if (S.flags.gamb) flow -= hh * 0.15; if (S.flags.alc) flow -= Math.min(hh * 0.06, 1500);

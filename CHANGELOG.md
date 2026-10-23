@@ -11,3 +11,6 @@
 - Raccourcis clavier (espace, →, 1-5, Échap), bouton « Revivre la même naissance », panneau Nouveautés.
 - Reprise de la vie en cours au retour sur le site (sauvegarde automatique chaque année, dans ton navigateur).
 - Mesure d'audience anonyme sans cookie (Cloudflare Web Analytics).
+- Foyer explicite : quitter (ou non) la maison des parents, studio, pièce sur le terrain familial, colocation ; loyer et scène cohérents.
+- Garde-fou de cohérence : un texte qui contredit la situation (personne absente, mauvais lieu…) ne peut plus apparaître.
+- Tests de qualité par territoire : réalités clés obligatoires (eau, chlordécone, CSG, requins, bangas, Chido…) et données complètes.
