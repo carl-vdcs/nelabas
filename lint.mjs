@@ -42,6 +42,8 @@ const LIFE_RULES = [
   { id: 'dec_count', why: 'au moins 12 décisions par vie adulte', test: S => S.deathAt.age >= 40 && (S.decisions || []).length < 12 ? `${(S.decisions || []).length} décisions` : null },
   { id: 'hobby_sex', why: 'une fille voit une offre de danse ; un garçon pas « avec les garçons »', test: S => { const d = (S.decisions || []).find(d => d.id === 'hobby6'); return d && S.sex === 'M' && /avec les garçons/.test(d.t) ? d.t : null; } },
   { id: 'quebec_isolated', why: 'au Québec, aucun événement territorial (t:) ne tire', test: S => S.flags.qcBad ? S.flags.qcBad : null },
+  { id: 'lycee_dec', why: 'tout lycéen a eu la décision du lycée (nom, bus, internat)', test: S => S.flags.bac && !S.flags.daeu && !S.flags.prive && !(S.decisions || []).some(d => d.id === 'lycee15') ? 'bac sans décision lycée' : null },
+  { id: 'college_dec', why: 'tout bachelier a eu la décision après le bac', test: S => S.flags.bac && !S.flags.daeu && S.deathAt.age > 20 && !(S.decisions || []).some(d => d.id === 'college') ? 'bac sans décision post-bac' : null },
   { id: 'dup_ids', why: 'pas de doublon d’identifiant', test: () => { const seen = new Set(); for (const x of [...EVENTS, ...DECS]) { if (seen.has(x.id)) return x.id; seen.add(x.id); } return null; } },
 ];
 

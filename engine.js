@@ -363,7 +363,8 @@ export function planYear(EVENTS, DECS) {
   const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone', 'schquit', 'crime', 'moral', 'alcquit', 'gambquit', 'noschool', 'bande', 'garde', 'distance', 'symptome', 'recomposee', 'harcele', 'mal_etre', 'reseaux', 'master_depart'];
   decs.sort((x, y) => (nDec(x.id) - nDec(y.id)) + (FAM.includes(y.id) ? 0.5 : 0) - (FAM.includes(x.id) ? 0.5 : 0) + (rnd() - 0.5));
   const nMax = S.age >= 18 && chance(0.5) ? 3 : 2; // adulte : jusqu'à trois décisions par an
-  decs.slice(0, nMax).forEach((d, i) => queue(0.25 + i * 0.25 + rnd() * 0.12, 'dec', d.id));
+  const must = decs.filter(d => d.must), rest = decs.filter(d => !d.must); // les décisions de parcours (lycée, bac, région…) passent toujours
+  [...must, ...rest.slice(0, Math.max(0, nMax - must.length))].forEach((d, i) => queue(0.2 + i * 0.22 + rnd() * 0.1, 'dec', d.id));
   if (MILESTONES.includes(S.age)) queue(0.03, 'ms', 'survive');
   if (REFLECT_AGES.includes(S.age)) queue(0.5, 'reflect', S.age);
 }
