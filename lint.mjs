@@ -28,6 +28,7 @@ const RULES = [
   { id: 'mom_home', why: 'mère au foyer / sans emploi : elle ne « rentre pas à 20 h »', test: (S, l, c) => c.momHome && /Ta mère rentre à 20 h/.test(l.t) ? l.t : null },
   { id: 'cyclone_echo', why: '« après le cyclone » sans cyclone récent', test: (S, l, c) => /Après le cyclone/.test(l.t) && !(c.rainY != null && c.age - c.rainY <= 1) ? l.t : null },
   { id: 'sex_f', why: 'texte féminin pour un homme', test: (S, l, c) => c.sex === 'M' && /\b(es enceinte|tombes enceinte|premières règles|ménopause|mammographie|chabine|endométriose|accouch)/i.test(l.t) ? l.t : null },
+  { id: 'sex_agree', why: 'accords au sexe du joueur (seul·e, né·e, papa/maman)', test: (S, l, c) => (c.sex === 'M' && /Tu l’élèves seule|\bla seule de ta promo|\bnée là-bas|dit « maman » pour la première/.test(l.t)) || (c.sex === 'F' && /Tu l’élèves seul\b|\ble seul de ta promo|\bné là-bas|dit « papa » pour la première/.test(l.t)) ? l.t : null },
   { id: 'sex_m', why: 'texte masculin pour une femme', test: (S, l, c) => c.sex === 'F' && /\bchabin\b|\bton compagnon te frappe\b.*\bil\b est ton mari/i.test(l.t) ? l.t : null },
   { id: 'retired_job', why: 'retraité : pas d’offre d’emploi ni de concours', test: (S, l, c) => c.retired && /Tu commences comme|Admis·e\. Fonctionnaire/.test(l.t) ? l.t : null },
   { id: 'inclusive', why: 'accord selon le sexe quand il est connu (né·e, seul·e…)', test: (S, l, c) => /·e\b|·te\b|·se\b|·ve\b/.test(l.t) ? null : null }, // informatif, désactivé

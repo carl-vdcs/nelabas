@@ -495,7 +495,7 @@ export function deathProb() {
   if (c.doc < 150) m *= 1.05;
   if (a >= 85) m = Math.pow(m, clamp(1 - (a - 85) / 20, 0.3, 1));
   // les indicateurs du territoire (pauvreté, soins, diabète) sont déjà dans le/im : on recentre m autour de 1
-  m *= 0.8;
+  m *= 0.8 * ({ REU: 1.12, GUF: 1.04, DIA: 1.03 }[c.id] || 1); // correction résiduelle de calibrage (rapport qualité du 2026-10-23)
   return 1 - Math.pow(1 - q, clamp(m, 0.25, 6));
 }
 
