@@ -99,6 +99,9 @@ export const TERRITORIES = [
 ];
 
 // Hexagone « témoin » pour les comparaisons affichées en jeu.
+// naissances dans le monde par an (ONU, World Population Prospects 2024 : ~132 millions) et en France (INSEE 2024 : 663 000)
+export const WORLD_BIRTHS = 132000000;
+export const FRANCE_BIRTHS = 663000;
 export const HEXAGONE = { le: 82.9, leM: 80.1, leF: 85.7, im: 3.5, tfr: 1.53, pov: 15.4, med: 1700, dia: 5.7, dep: 25, doc: 341, suic: 13.2, hom: 1.2, neet: 12, unemp: 8, youthUnemp: 14 };
 
 export const SOURCES = {

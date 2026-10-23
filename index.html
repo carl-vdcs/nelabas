@@ -227,7 +227,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
 <script type="module">
 import * as E from './engine.js';
 import { EVENTS, DECS, REFLECT } from './events.js';
-import { TERRITORIES, HEXAGONE, SOURCES } from './data.js';
+import { TERRITORIES, HEXAGONE, SOURCES, WORLD_BIRTHS, FRANCE_BIRTHS } from './data.js';
 import { makeScene } from './scene.js';
 let SCENE = null, SCENE2 = null;
 const $ = s => document.querySelector(s);
@@ -403,7 +403,7 @@ $('#born').onclick = () => {
   // roulette : les territoires défilent, ralentissent, puis le tiré se fixe
   const names = TERRITORIES.map(t => t.id === 'DIA' ? 'Hexagone' : t.nom); const el = $('#drawName'); el.style.animation = 'none'; el.style.color = 'var(--mut)'; $('#drawP').textContent = '';
   let i = Math.floor(Math.random() * names.length), delay = 60, n = 0; const finalName = c.id === 'DIA' ? 'Hexagone' : c.nom;
-  const step = () => { el.textContent = names[i % names.length]; i++; n++; delay *= 1.12; if (delay < 420) setTimeout(step, delay); else { el.textContent = finalName; el.style.color = 'var(--ink)'; el.style.animation = 'pop .5s ease-out'; $('#drawP').textContent = `Probabilité : ${(c.b / tot * 100).toFixed(1).replace('.', ',')} %${c.id === 'DIA' ? ' · de parents ' + E.TBY[S.origin].gentF + 's' : ''}`; setTimeout(showActe, 2200); } };
+  const step = () => { el.textContent = names[i % names.length]; i++; n++; delay *= 1.12; if (delay < 420) setTimeout(step, delay); else { el.textContent = finalName; el.style.color = 'var(--ink)'; el.style.animation = 'pop .5s ease-out'; const w1 = Math.round(WORLD_BIRTHS / c.b); $('#drawP').innerHTML = `Dans ce jeu : ${(c.b / tot * 100).toFixed(1).replace('.', ',')} %${c.id === 'DIA' ? ' · de parents ' + esc(E.TBY[S.origin].gentF) + 's' : ''}<br><span class="small">Dans le monde : 1 naissance sur ${w1.toLocaleString('fr-FR')} (${c.b.toLocaleString('fr-FR')} naissances par an sur 132 millions) · en France : 1 sur ${Math.round(FRANCE_BIRTHS / c.b)}</span>`; setTimeout(showActe, 2200); } };
   setTimeout(step, 200);
   COMP = []; for (let i = 0; i < 4; i++) COMP.push(runHeadless());
 };
