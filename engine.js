@@ -100,6 +100,16 @@ export const WORKING = j => j && !['student', 'seeking', 'homemaker', 'retired']
 // catégorie socioprofessionnelle INSEE de chaque métier + secteur public
 export const JOB_CS = { bigowner: 'art', politician: 'cad', farm: 'agr', fisher: 'agr', vendor: 'art', owner: 'art', artist: 'art', engineer: 'cad', doctor: 'cad', lawyer: 'cad', teacher: 'int', nurse: 'int', tech: 'int', police: 'int', civil: 'int', clerk: 'emp', shop: 'emp', hotel: 'emp', domestic: 'emp', informal: 'emp', construct: 'ouv', driver: 'ouv' };
 export const JOB_PUB = { teacher: 1, nurse: 0.8, civil: 1, police: 1, clerk: 0.5, doctor: 0.6, tech: 0.3, engineer: 0.3, domestic: 0.2 };
+// graphe de carrière : suites plausibles d'un métier (même filière, ou un cran au-dessus)
+export const JOB_NEXT = {
+  construct: ['construct', 'tech', 'driver', 'owner'], tech: ['tech', 'engineer', 'owner'], engineer: ['engineer', 'owner', 'lawyer'],
+  nurse: ['nurse', 'civil', 'doctor'], domestic: ['domestic', 'nurse', 'hotel', 'shop'], shop: ['shop', 'clerk', 'hotel', 'vendor', 'owner'], hotel: ['hotel', 'shop', 'owner', 'vendor'],
+  clerk: ['clerk', 'civil', 'teacher', 'tech'], civil: ['civil', 'clerk', 'teacher'], teacher: ['teacher', 'civil'], police: ['police', 'civil'],
+  driver: ['driver', 'construct', 'vendor', 'owner'], vendor: ['vendor', 'shop', 'owner', 'hotel'], farm: ['farm', 'fisher', 'vendor', 'construct'], fisher: ['fisher', 'farm', 'vendor'],
+  doctor: ['doctor'], lawyer: ['lawyer', 'civil', 'owner'], owner: ['owner', 'vendor', 'shop', 'engineer'], artist: ['artist', 'hotel', 'teacher'], bigowner: ['bigowner', 'owner'], politician: ['politician', 'civil', 'lawyer'],
+  informal: ['informal', 'vendor', 'driver', 'construct', 'domestic', 'hotel', 'shop', 'farm', 'fisher'],
+};
+export const CS_RANK = { agr: 1, emp: 1, ouv: 1, art: 2, int: 2, cad: 3 };
 export const CS_NM = { agr: 'agriculteurs', art: 'artisans, commerçants', cad: 'cadres', int: 'professions intermédiaires', emp: 'employés', ouv: 'ouvriers' };
 export const CS_Q = { agr: 2, art: 3, cad: 5, int: 4, emp: 2, ouv: 2 };
 // poids d'un métier dans un territoire : structure CS × part du public × spécificités
@@ -361,7 +371,9 @@ export function finances() {
     const J = JOBS[S.job]; const want = clamp(J.lo + (J.hi - J.lo) * clamp((S.jobY + 2) / 25 + (S.st.sm - 50) / 200 + (S.q - 3) * 0.05, 0, 1), J.lo, J.hi);
     S.pct += (want - S.pct) * 0.3; if (S.focusW.work) S.pct = clamp(S.pct + 0.01, 0, 0.99);
     S.income = incomeAt(c, S.pct); if (S.job !== 'informal' && S.job !== 'artist') S.income = Math.max(S.income, incomeAt(c, 0.5) * 0.62); // plancher SMIC ≈ 62 % du salaire médian
+    if ((JOB_PUB[S.job] || 0) >= 0.8 && c.id !== 'DIA') S.income *= c.id === 'REU' ? 1.53 : 1.4; // majoration de traitement outre-mer
     S.jobY++;
+    if (S.job !== 'informal') { S.stats.formalYears = (S.stats.formalYears || 0) + 1; S.stats.lastFormalIncome = S.income; }
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
@@ -376,6 +388,10 @@ export function finances() {
   let flow = hh * saveRate;
   // crédit immobilier : remboursé sur 25 ans dans les dépenses
   if (S.mortgage && S.mortgage.left > 0) { const pay = Math.min(S.mortgage.left, S.mortgage.annual); S.mortgage.left -= pay; S.debt = Math.max(0, S.debt - pay); flow -= pay * 0.6; } // 40 % du crédit remplace un loyer
+  // coûts durs : enfants qui étudient loin, voiture, entretien du logement
+  for (const k of S.fam.kids) if (k.alive && k.far && k.age >= 18 && k.age <= 21) flow -= incomeAt(c, 0.5) * 0.3; // un enfant étudiant en Hexagone ≈ 30 % du salaire médian par an
+  if (S.flags.car) { S.flags.carAge = (S.flags.carAge || 0) + 1; flow -= incomeAt(c, 0.5) * 0.06; }
+  if (S.flags.house) flow -= (S.houseVal || 60000) * 0.01;
   // intérêts sur le découvert / crédit conso
   // crédit conso / découvert : 4 % d'intérêts, remboursé à hauteur de 6 % du revenu du ménage chaque année (prélevé sur les dépenses)
   let conso = Math.max(0, S.debt - (S.mortgage ? S.mortgage.left : 0));
@@ -442,14 +458,25 @@ export function endYear(hooks) {
   if (S.fam.dad.alive) { S.fam.dad.age++; if (chance(lifeTable(c, 'M').q[Math.min(110, S.fam.dad.age)] * (S.fam.dad.conds && Object.keys(S.fam.dad.conds).length ? 1.6 : 1.1))) { S.fam.dad.alive = false; parentDeath(c, 'dad'); hooks.onParentDeath('dad'); } }
   if (S.fam.partner && S.fam.partner.alive) { S.fam.partner.age++; if (chance(lifeTable(c, S.fam.partner.sex).q[Math.min(110, S.fam.partner.age)])) { S.fam.partner.alive = false; hooks.onPartnerDeath(); } }
   for (const k of S.fam.kids) if (k.alive) { k.age++; }
-  // retraite
-  if (!S.retired && a >= (S.flags.retireAt || 64) && WORKING(S.job)) { S.retired = true; S.pension = S.income * clamp(0.4 + S.jobY / 100, 0.35, 0.75); S.job = 'retired'; log(`Tu prends ta retraite${S.pension < incomeAt(c, 0.25) ? ', avec une petite pension' : ''}.`); }
+  // retraite : décidée par le joueur (décision 'retraite') ; à 70 ans, c'est automatique
+  if (!S.retired && a >= (S.flags.retireAt || 70) && WORKING(S.job)) retire(c, 'auto');
+  if (!S.retired && a >= 67 && !WORKING(S.job) && S.job !== 'homemaker' && S.job !== 'student') retire(c, 'auto');
+  if (!S.retired && a >= 67 && S.job === 'homemaker') retire(c, 'auto');
   S.years.push({ a, h: Math.round(st.h), hl: Math.round(st.hl), so: Math.round(st.so), sm: Math.round(st.sm), nw: Math.round(S.money + (S.houseVal || 0) - S.debt), inc: Math.round(S.income), cur: S.cur });
   // mort
   if (chance(deathProb())) { hooks.die(); return; }
   S.age++; S.t = 0; hooks.planYear();
 }
 
+export function retire(c, how) {
+  S.retired = true; const a = S.age;
+  const yrs = S.stats.formalYears || 0; const base = S.stats.lastFormalIncome || S.income || 0;
+  // taux ≈ 50 % du dernier salaire pour une carrière complète (42 ans), décote avant 67, plancher ASPA (≈ 1 035 €/mois ≈ 50 % du salaire médian)
+  let pension = base * clamp(0.5 * yrs / 42, 0, 0.6) * (how === 'early' ? 0.85 : 1);
+  const aspa = incomeAt(c, 0.5) * 0.5; S.flags.aspa = pension < aspa; pension = Math.max(pension, aspa);
+  S.pension = pension; S.flags.retiredAt = a; S.flags.mainJob = S.flags.mainJob || S.job; S.job = 'retired';
+  log(S.flags.aspa ? `Retraite à ${a} ans. Une carrière hachée, non déclarée en partie : tu touches le minimum vieillesse.` : `Retraite à ${a} ans, ${Math.round(0.5 * clamp(yrs / 42, 0, 1.2) * 100)} % de ton dernier salaire.`, S.flags.aspa ? 'bad' : 'ev', S.flags.aspa && c.id !== 'DIA' ? 'Dans les DROM, la part des retraités au minimum vieillesse (ASPA) est 3 à 4 fois plus élevée qu’en Hexagone, héritage du travail informel (DREES, approx)' : null);
+}
 function parentDeath(c, who) {
   const a = S.age; const P = S.fam[who];
   eff({ h: a < 18 ? -12 : -8, so: a < 18 ? -5 : -3 });
