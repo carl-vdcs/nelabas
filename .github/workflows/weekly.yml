@@ -21,6 +21,6 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           T="Rapport qualité $(date +%F)"; [ -n "$LINT_FAIL$CALIB_FAIL" ] && T="⚠️ $T — contrôles en échec"
-          gh issue create --title "$T" --body-file body.md --label qualite || gh issue create --title "$T" --body-file body.md
+          gh api "repos/${GITHUB_REPOSITORY}/issues" -f title="$T" -F body=@body.md -f 'labels[]=qualite' || gh api "repos/${GITHUB_REPOSITORY}/issues" -f title="$T" -F body=@body.md
       - uses: actions/upload-artifact@v4
         with: { name: rapport, path: body.md }
