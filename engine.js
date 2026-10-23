@@ -365,7 +365,7 @@ export function planYear(EVENTS, DECS) {
   const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && (!d.t || (!S.away && d.t.includes(S.cur))) && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
   // priorité : décisions jamais vues, puis famille, puis le reste ; un peu de hasard pour ne pas figer l'ordre
   const nDec = id => (S.decisions || []).filter(x => x.id === id).length;
-  const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone', 'schquit', 'crime', 'moral', 'alcquit', 'gambquit', 'noschool', 'bande', 'garde', 'distance', 'symptome', 'recomposee', 'harcele', 'mal_etre', 'reseaux', 'master_depart'];
+  const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone', 'schquit', 'crime', 'moral', 'alcquit', 'gambquit', 'noschool', 'bande', 'garde', 'distance', 'symptome', 'recomposee', 'harcele', 'mal_etre', 'reseaux', 'master_depart', 'soins'];
   decs.sort((x, y) => (nDec(x.id) - nDec(y.id)) + (FAM.includes(y.id) ? 0.5 : 0) - (FAM.includes(x.id) ? 0.5 : 0) + (rnd() - 0.5));
   const nMax = S.age >= 18 && chance(0.5) ? 3 : 2; // adulte : jusqu'à trois décisions par an
   const must = decs.filter(d => d.must), rest = decs.filter(d => !d.must); // les décisions de parcours (lycée, bac, région…) passent toujours
