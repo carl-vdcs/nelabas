@@ -1,3 +1,4 @@
 node_modules/
 *.png
 .wrangler/
+package-lock.json

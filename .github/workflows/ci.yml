@@ -1,0 +1,38 @@
+name: CI — qualité de simulation
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Syntaxe
+        run: npm run check
+      - name: Linter de récits (300 vies, 30 règles de cohérence)
+        run: npm run lint
+      - name: Calibrage statistique (800 vies)
+        run: npm run calib
+      - name: Test navigateur
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run smoke
+  promote:
+    # dev → main seulement si tout passe ; GitHub Pages déploie main
+    needs: test
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Avancer main sur dev
+        run: |
+          git config user.name "nelabas-ci"
+          git config user.email "ci@nelabas"
+          git push origin HEAD:main

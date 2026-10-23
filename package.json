@@ -1,0 +1,14 @@
+{
+  "name": "nelabas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check engine.js && node --check events.js && node --check data.js && node --check geo.js && node --check scene.js",
+    "lint": "node lint.mjs 300",
+    "calib": "node tests/calib.mjs 800",
+    "smoke": "node tests/smoke.mjs",
+    "test": "npm run check && npm run lint && npm run calib",
+    "report": "node tests/report.mjs"
+  },
+  "devDependencies": { "playwright": "1.49.1" }
+}

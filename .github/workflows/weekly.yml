@@ -1,0 +1,26 @@
+name: Rapport qualité hebdomadaire
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # lundi 6h17 UTC
+  workflow_dispatch:
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions: { issues: write, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Lint long (1000 vies) et rapport
+        run: |
+          node lint.mjs 1000 > lint.txt || echo "LINT_FAIL=1" >> $GITHUB_ENV
+          node tests/calib.mjs 1500 > calib.txt || echo "CALIB_FAIL=1" >> $GITHUB_ENV
+          node tests/report.mjs 800 > report.md
+          { echo '## Lint'; echo '```'; cat lint.txt; echo '```'; echo '## Calibrage'; echo '```'; cat calib.txt; echo '```'; cat report.md; } > body.md
+      - name: Ouvrir une issue avec le rapport
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          T="Rapport qualité $(date +%F)"; [ -n "$LINT_FAIL$CALIB_FAIL" ] && T="⚠️ $T — contrôles en échec"
+          gh issue create --title "$T" --body-file body.md --label qualite || gh issue create --title "$T" --body-file body.md
+      - uses: actions/upload-artifact@v4
+        with: { name: rapport, path: body.md }

@@ -175,6 +175,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
 .row button.primary{background:var(--sun);color:#1a1400}
 :focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .choice .sub{display:block;font-size:.78em;opacity:.65;margin-top:3px;font-weight:400}
+.news li{margin:4px 0 4px 18px}.news h3{margin:12px 0 4px}
 </style>
 </head>
 <body>
@@ -187,7 +188,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
   <div class="opt"><label>Toi, tu es né·e où ? (facultatif, pour comparer à la fin)</label><select id="home"><option value="">Je ne dis pas</option><option value="GLP">Guadeloupe</option><option value="MTQ">Martinique</option><option value="GUF">Guyane</option><option value="REU">La Réunion</option><option value="MYT">Mayotte</option><option value="DIA">En Hexagone, de parents ultramarins</option><option value="HEX">En Hexagone, sans lien avec l’outre-mer</option></select></div>
   <button class="cta" id="born">Naître</button>
   <p class="small">Sans inscription. La mort, la maladie, les violences et le deuil arrivent ici aussi souvent que dans les statistiques, sans scène. Dès 15 ans. Si ça pèse : 3114 (écoute, 24h/24), 3919 (violences).</p>
-  <p class="small">Chiffres : INSEE, Santé publique France, INED, DREES, Fnors, SSMSI. <a href="#" id="srcLink">Voir les sources et les territoires</a> · <a href="#" id="pastLink">Mes vies passées</a></p>
+  <p class="small">Chiffres : INSEE, Santé publique France, INED, DREES, Fnors, SSMSI. <a href="#" id="srcLink">Voir les sources et les territoires</a> · <a href="#" id="newsLink">Nouveautés</a> · <a href="#" id="pastLink">Mes vies passées</a></p>
 </section>
 
 <section id="draw" class="wrap hidden"><div class="lbl">Tirage de ton territoire de naissance</div><h1 id="drawName"></h1><div class="p" id="drawP"></div></section>
@@ -346,6 +347,7 @@ function renderFoot() {
   <h3 style="margin-top:16px">Courbe de survie</h3><svg viewBox="0 0 500 100" style="width:100%;height:90px;display:block"><polyline fill="none" stroke="#7FA39C" stroke-width="1.5" stroke-dasharray="3 3" points="${ph.join(' ')}"/><polyline fill="none" stroke="#F2B33D" stroke-width="2" points="${pts.join(' ')}"/><line x1="${ax}" y1="0" x2="${ax}" y2="100" stroke="#E0605A" stroke-width="1"/></svg><div class="small"><span style="color:#F2B33D">— ${S.sex === 'F' ? 'femmes nées' : 'hommes nés'} ${c.id === 'DIA' ? 'en Hexagone' : c.article}</span> · <span style="color:#7FA39C">- - Hexagone</span> · part encore en vie à chaque âge</div>
   <h3 style="margin-top:16px">${c.id === 'DIA' ? 'Diaspora ultramarine en Hexagone' : esc(c.nom)}</h3><table>${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table><div class="small" style="margin-top:6px">INSEE 2024, Santé publique France, DREES, Fnors. <a href="#" id="srcLink3">Toutes les sources</a></div>`;
   $('#srcLink3').onclick = e => { e.preventDefault(); showSources(); };
+  const nl = $('#newsLink'); if (nl) nl.onclick = async e => { e.preventDefault(); let md = ''; try { md = await (await fetch('CHANGELOG.md')).text(); } catch { md = '# Nouveautés\n\nIndisponible hors ligne.'; } const html = md.split('\n').map(l => l.startsWith('# ') ? `<h2>${esc(l.slice(2))}</h2>` : l.startsWith('## ') ? `<h3>${esc(l.slice(3))}</h3>` : l.startsWith('- ') ? `<li>${esc(l.slice(2))}</li>` : l.trim() ? `<p>${esc(l)}</p>` : '').join(''); const sh = sheet(`<div class="news">${html}</div><p class="small">Le jeu est amélioré chaque semaine à partir des retours de testeurs et d’un rapport qualité automatique. <a href="https://github.com/carl-vdcs/nelabas" target="_blank" rel="noopener">Code et suivi sur GitHub</a>.</p><div class="row"><button class="primary" id="newsOk">Fermer</button></div>`); sh.querySelector('#newsOk').onclick = closeSheet; };
 }
 
 // ---------- hooks moteur ----------
@@ -389,6 +391,8 @@ function showReflect(age) {
 // ---------- boucle ----------
 function loop(ts) { if (!last) last = ts; const dt = Math.min(0.25, (ts - last) / 1000); last = ts; if (S && S.phase === 'life') { E.tick(dt, hooks); if (S.phase === 'life') { renderTop(); if (Math.random() < 0.1) renderGauges(); } } raf = requestAnimationFrame(loop); }
 $('#pause').onclick = () => { S.paused = !S.paused; renderTop(); };
+// raccourcis clavier : espace = pause, → = année suivante, 1-5 = choix, Échap = fermer
+document.addEventListener('keydown', e => { if (!S || S.phase !== 'life' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return; const sh = $('#sheet'); if (/^[1-5]$/.test(e.key) && sh && !sh.classList.contains('hidden')) { const b = sh.querySelectorAll('.choice')[+e.key - 1]; if (b) { b.click(); e.preventDefault(); } return; } if (e.key === ' ') { e.preventDefault(); $('#pause').click(); } if (e.key === 'ArrowRight') { e.preventDefault(); $('#next').click(); } if (e.key === 'Escape' && sh && !sh.classList.contains('hidden') && sh.querySelector('#newsOk, #srcOk')) closeSheet(); });
 $('#speeds').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (!b || !S) return; S.speed = +b.dataset.s; S.paused = false; renderTop(); });
 $('#fs').onclick = () => { const el = document.documentElement; if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); else toast('Sur iPhone : partage → « Sur l’écran d’accueil » pour jouer en plein écran.'); };
 function toast(m) { let t = $('#toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;left:16px;right:16px;bottom:110px;z-index:30;background:var(--sur2);color:var(--ink);padding:12px 14px;border-radius:12px;font-size:14px;text-align:center'; document.body.appendChild(t); } t.textContent = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 4000); }
@@ -397,7 +401,7 @@ $('#next').onclick = () => { if (!S || S.phase !== 'life' || S.pending) return; 
 
 // ---------- naissance : tirage → acte de naissance → vie ----------
 $('#born').onclick = () => {
-  S = E.newLife({ paceMin }); S.phase = 'birth'; S.home = $('#home').value || null;
+  const sd = (location.hash.match(/graine=(\d+)/) || [])[1]; const s0 = sd ? +sd : Math.floor(Math.random() * 2 ** 31); E.seed(s0); S = E.newLife({ paceMin }); S.seed0 = s0; S.seedUsed = sd ? +sd : null; S.phase = 'birth'; S.home = $('#home').value || null; location.hash = '';
   const c = E.TBY[S.born]; const tot = TERRITORIES.reduce((x, t) => x + t.b, 0);
   $('#intro').classList.add('hidden'); $('#draw').classList.remove('hidden'); window.scrollTo(0, 0);
   // roulette : les territoires défilent, ralentissent, puis le tiré se fixe
@@ -457,10 +461,11 @@ function showDeath() {
       <div>${esc(c.nom === 'Hexagone (diaspora)' ? 'Diaspora' : c.nom)}<b>${c.le} ans</b>espérance de vie<br>${c.pov} % de pauvreté<br>${c.dia} % de diabète</div>
       <div>${home ? esc(home.nom === 'Hexagone (diaspora)' ? 'Diaspora' : home.nom) : 'Hexagone'}<b>${home ? home.le : HEXAGONE.le} ans</b>espérance de vie<br>${home ? home.pov : HEXAGONE.pov} % de pauvreté<br>${home ? home.dia : HEXAGONE.dia} % de diabète</div>
     </div></div>
-    <div class="row"><button class="primary" id="share">Partager cette vie</button><button id="again">Naître à nouveau</button></div>
+    <div class="row"><button class="primary" id="share">Partager cette vie</button><button id="again">Naître à nouveau</button> <button class="ghost" id="againSame">Revivre la même naissance</button></div>
     <p class="small">Si cette vie t’a pesé : 3114 (écoute, gratuit, 24h/24) · 3919 (violences) · Les chiffres viennent de l’INSEE, de Santé publique France, de l’INED, de la DREES. <a href="#" id="srcLink2">Sources</a></p>`;
   $('#life').classList.add('hidden'); $('#dead').classList.remove('hidden'); window.scrollTo(0, 0);
   $('#again').onclick = () => location.reload();
+  const ag = $('#againSame'); if (ag) ag.onclick = () => { location.hash = 'graine=' + (S.seedUsed || S.seed0); location.reload(); };
   $('#share').onclick = () => shareCard(s);
   $('#srcLink2').onclick = e => { e.preventDefault(); showSources(); };
 }
