@@ -131,6 +131,22 @@ select{font:inherit;background:var(--sur);color:var(--ink);border:1px solid var(
 .foot td:last-child{text-align:right;color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin:8px 0}
 .grid i{display:block;aspect-ratio:1;border-radius:2px;background:var(--sur2)}
+/* ---------- bureau : trois colonnes ---------- */
+.feedhead{font-family:Fraunces,serif;font-size:19px;color:var(--ink2);margin:14px 0 4px;display:flex;justify-content:space-between;align-items:baseline}
+.feedhead span{font:400 12px "Instrument Sans";color:var(--mut)}
+@media (min-width:960px){
+  .wrap#life{max-width:1320px}
+  .hdr{margin:0;padding-left:0;padding-right:0}
+  .cols{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;gap:16px;align-items:start}
+  .col-l,.col-r{position:sticky;top:96px;max-height:calc(100dvh - 110px);overflow:auto;scrollbar-width:thin}
+  .focus{position:static;padding:0;background:none;margin:0 0 10px}
+  .focus .chips{flex-wrap:wrap;overflow:visible}
+  .feedbox{background:var(--sur);border-radius:14px;padding:4px 14px 10px}
+  .feed{max-height:62vh;overflow:auto;scrollbar-width:thin}
+  #life{padding-bottom:40px}
+  .foot{margin-top:10px}
+  .fiche#fiche{margin-top:0}
+}
 /* ---------- feuilles ---------- */
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(6,16,18,.7);display:flex;align-items:flex-end;justify-content:center}
 .sheet .box{width:100%;max-width:560px;background:var(--sur);border-radius:18px 18px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));max-height:90dvh;overflow:auto}
@@ -177,7 +193,9 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
 <section id="acte" class="wrap hidden"></section>
 <section id="life" class="wrap hidden">
   <div class="hdr"><div class="top"><div class="age"><span id="age">0</span><small>ans</small></div><div class="where" id="where"></div><div class="ctl"><button id="fs" title="Plein écran">⛶</button><button id="auto" aria-pressed="false" title="Mode automatique : les décisions sont prises pour toi">auto</button></div></div>
-  <div class="speeds" id="speeds"><button id="pause" aria-pressed="false">❚❚ Pause</button><button data-s="1" aria-pressed="true">1×</button><button data-s="2">2×</button><button data-s="4">4×</button><button data-s="8">8×</button><button data-s="16">16×</button><button id="next">Suivante »</button></div>
+  <div class="speeds" id="speeds"><button id="pause" aria-pressed="false">❚❚ Pause</button><button data-s="1" aria-pressed="true">1×</button><button data-s="2">2×</button><button data-s="4">4×</button><button data-s="8">8×</button><button data-s="16">16×</button><button id="next">Suivante »</button></div></div>
+  <div class="cols">
+  <div class="col col-l">
   <div class="id"><canvas id="portrait" width="24" height="24"></canvas><div><div class="nm" id="nm"></div><div class="sub" id="sub"></div></div></div>
   <div class="gauges">
     <div class="g"><span>Santé</span><span class="bar"><i id="g_hl"></i></span><span class="v" id="v_hl"></span></div>
@@ -185,15 +203,21 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
     <div class="g"><span>Liens</span><span class="bar"><i id="g_so"></i></span><span class="v" id="v_so"></span></div>
     <div class="g"><span>Savoir</span><span class="bar"><i id="g_sm"></i></span><span class="v" id="v_sm"></span></div>
   </div>
-  <div class="money"><span id="job"></span><span id="eur"></span></div></div>
-  <div class="scene"><canvas id="scene"></canvas><div class="cap" id="cap"></div></div>
+  <div class="money"><span id="job"></span><span id="eur"></span></div>
   <div class="ind" id="ind"></div>
-  <div class="prio" id="prio"></div>
   <details class="fiche" id="fiche"><summary>Fiche d’identité et famille</summary><div id="ficheBody"></div></details>
-  <details class="fiche" id="compBox" open><summary>Nés à la même seconde</summary><div class="comp" id="comp"></div></details>
-  <ul class="feed" id="feed"></ul>
-  <div class="foot" id="foot"></div>
+  </div>
+  <div class="col col-c">
+  <div class="scene"><canvas id="scene"></canvas><div class="cap" id="cap"></div></div>
+  <div class="prio" id="prio"></div>
   <div class="focus"><div class="in"><div class="lbl">La priorité de cette année</div><div class="chips" id="chips"></div></div></div>
+  <div class="feedbox"><div class="feedhead">Récit d’une vie <span>plus récent d’abord</span></div><ul class="feed" id="feed"></ul></div>
+  </div>
+  <div class="col col-r">
+  <details class="fiche" id="compBox" open><summary>Nés à la même seconde</summary><div class="comp" id="comp"></div></details>
+  <div class="foot" id="foot"></div>
+  </div>
+  </div>
 </section>
 
 <section id="dead" class="wrap hidden"></section>
@@ -295,6 +319,7 @@ function renderInd() {
   const st = E.stage(); const txt = st === 'baby' ? 'Tu es un bébé, tes parents t’élèvent. Les premiers moments s’accumulent ; dès 6 ans, tu choisiras la priorité de chaque année. Tu peux passer cette période avec « suiv. » ou en ×8.' : st === 'school' ? 'Chaque année, tu choisis où va ton énergie. Ça change les probabilités, pas le destin : les chiffres du territoire pèsent toujours.' : st === 'elder' ? 'La retraite. Ce qui compte maintenant : la santé, les liens, ce que tu laisses.' : 'Travail, famille, santé, formation : chaque année, une priorité. Les décisions importantes s’ouvrent d’elles-mêmes.';
   $('#prio').innerHTML = `<h4>Priorité de l’année · ${a} ans · ${esc(S.city)}</h4>${txt}`;
 }
+if (matchMedia('(min-width:960px)').matches) { const f = document.getElementById('fiche'); if (f) f.open = true; }
 function renderAll() { renderTop(); renderId(); renderGauges(); renderChips(); renderFiche(); renderComp(); renderFoot(); renderScene(); renderInd(); }
 
 // ---------- compagnons nés à la même seconde (vies jouées d'avance en mode auto) ----------

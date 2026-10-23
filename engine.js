@@ -345,7 +345,8 @@ export function finances() {
   if (WORKING(S.job)) {
     const J = JOBS[S.job]; const want = clamp(J.lo + (J.hi - J.lo) * clamp((S.jobY + 2) / 25 + (S.st.sm - 50) / 200 + (S.q - 3) * 0.05, 0, 1), J.lo, J.hi);
     S.pct += (want - S.pct) * 0.3; if (S.focusW.work) S.pct = clamp(S.pct + 0.01, 0, 0.99);
-    S.income = incomeAt(c, S.pct); S.jobY++;
+    S.income = incomeAt(c, S.pct); if (S.job !== 'informal' && S.job !== 'artist') S.income = Math.max(S.income, incomeAt(c, 0.5) * 0.62); // plancher SMIC ≈ 62 % du salaire médian
+    S.jobY++;
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
