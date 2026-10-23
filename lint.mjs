@@ -29,6 +29,8 @@ const RULES = [
   { id: 'rich_tight', why: 'famille aisée (q≥4, élite) : pas de « serre le budget »', test: (S, l, c) => c.rich && /serre le budget|serrent le budget|Pas d’argent pour les clubs/.test(l.t) ? l.t : null },
   { id: 'fact_place', why: 'un fait cité parle du territoire où l’on vit (pas « dans les DROM » depuis l’Hexagone)', test: (S, l, c) => c.cur === 'DIA' && !c.away && l.f && /^Dans les DROM(?! comme)|des DROM passent|^Les 15-24 ans des DROM/.test(l.f) ? l.f : null },
   { id: 'fact_sex', why: 'un fait sur « les femmes » n’illustre pas la vie d’un homme (et inversement)', test: (S, l, c) => l.f && (c.sex === 'M' && /des femmes victimes/.test(l.f) && !/hommes/.test(l.f)) ? l.f : null },
+  { id: 'agree_parent', why: 'accords du père/de la mère (pas de « Ton père est amputé·e »)', test: (S, l, c) => /Ton père (est|retrouve)[^.]*·|Ta mère (est|retrouve)[^.]*·|Tu commences comme [^.]*·/.test(l.t) ? l.t : null },
+  { id: 'gp_far_contradiction', why: 'grands-parents « sur WhatsApp » et « te font un gâteau » dans la même enfance', test: (S, l, c) => c.gpFar && /grand-(mère|père)[^.]{0,40}(te fait|te réveille|te montre|t’apprend)/.test(l.t) && !/visio|colis|été au pays|téléphone/.test(l.t) ? l.t : null },
   { id: 'cyclone_echo', why: '« après le cyclone » sans cyclone récent', test: (S, l, c) => /Après le cyclone/.test(l.t) && !(c.rainY != null && c.age - c.rainY <= 1) ? l.t : null },
   { id: 'sex_f', why: 'texte féminin pour un homme', test: (S, l, c) => c.sex === 'M' && /\b(es enceinte|tombes enceinte|premières règles|ménopause|mammographie|chabine|endométriose|accouch)/i.test(l.t) ? l.t : null },
   { id: 'sex_agree', why: 'accords au sexe du joueur (seul·e, né·e, papa/maman)', test: (S, l, c) => (c.sex === 'M' && /Tu l’élèves seule|\bla seule de ta promo|\bnée là-bas|dit « maman » pour la première/.test(l.t)) || (c.sex === 'F' && /Tu l’élèves seul\b|\ble seul de ta promo|\bné là-bas|dit « papa » pour la première/.test(l.t)) ? l.t : null },
@@ -39,7 +41,7 @@ const RULES = [
 ];
 // ---- règles d'état (fin de vie) ----
 const LIFE_RULES = [
-  { id: 'famIncome', why: 'revenu familial ≥ revenu de chaque parent', test: S => { const c = E.TBY[S.born]; const fi = E.famIncomeCalc(c); const m = E.parentIncome(c, S.fam.mom), d = E.parentIncome(c, S.fam.dad); return fi + 1 < Math.max(m, d) ? `fam ${Math.round(fi)} < parent ${Math.round(Math.max(m, d))}` : null; } },
+  { id: 'famIncome', why: 'revenu familial ≥ revenu de chaque parent', test: S => { const c = E.TBY[S.born]; const fi = E.famIncomeCalc(c); const m = E.parentIncome(c, S.fam.mom), d = E.parentIncome(c, S.fam.dad); return fi < Math.max(m, d) * 0.85 ? `fam ${Math.round(fi)} < parent ${Math.round(Math.max(m, d))}` : null; } },
   { id: 'rel_roots', why: 'religion cohérente avec les racines', test: S => (/zarab|comorienne|mahoraise/.test(S.roots) && S.rel !== 'M') || (/malbar/.test(S.roots) && !['H', 'C'].includes(S.rel)) ? `${S.roots} / ${S.rel}` : null },
   { id: 'skin_roots', why: 'carnation cohérente avec les racines', test: S => (/béké|gros blancs|blancs-pays|yab|zoreil/.test(S.roots) && S.flags.skin < 5) || (/bushinengu|kaf|afro|mahoraise/.test(S.roots) && S.flags.skin > 3) ? `${S.roots} skin ${S.flags.skin}` : null },
   { id: 'dec_repeat', why: 'une décision ne revient pas plus de 6 fois', test: S => { const c = {}; for (const d of (S.decisions || [])) c[d.id] = (c[d.id] || 0) + 1; const k = Object.keys(c).find(k => c[k] > 6); return k ? `${k} ×${c[k]}` : null; } },
@@ -57,7 +59,7 @@ function runLife(terr, i) {
   E.seed(1000 + i); // déterministe : même résultat ici et en CI
   const S = E.newLife(terr ? { territory: terr } : {}); S.phase = 'life'; S.auto = true;
   const ctxAt = []; // état au moment de chaque ligne de log
-  const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, momHome: S.fam.mom.alive && ['homemaker', 'seeking'].includes(S.fam.mom.job), rich: S.q >= 4 || !!S.elite, gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
+  const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, momHome: S.fam.mom.alive && ['homemaker', 'seeking'].includes(S.fam.mom.job), rich: S.q >= 4 || !!S.elite, gpFar: !!S.flags.gpsFar || (S.born !== 'DIA' && S.cur === 'DIA'), gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
   const mark = () => { while (ctxAt.length < S.log.length) ctxAt.push(snap()); };
   const hooks = {
     fire(e) { if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); const r = E.fireEvent(EVENTS, e.id); if (S.away && ev && ev.t && r) S.flags.qcBad = e.id; } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) E.choose(Math.floor(E.rnd() * S.pending.choices.length)); } mark(); if (S.fam.partner) S.flags.lastPt = S.fam.partner.name; },

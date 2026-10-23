@@ -85,7 +85,7 @@ export const TERRITORIES = [
     campagne: ['Bandrélé', 'Mtsamboro', 'Sada', 'Chiconi', 'Kani-Kéli'],
   },
   {
-    id: 'DIA', nom: 'Hexagone (diaspora)', article: 'en Hexagone, de parents ultramarins', gent: 'ultramarin', gentF: 'ultramarine',
+    id: 'DIA', nom: 'Hexagone (diaspora)', article: 'en Hexagone', gent: 'ultramarin', gentF: 'ultramarine',
     p: 'dia', nm: 'antilles', rel: 'C60,N35,M3,O2',
     b: 5000, pop: 800, le: 82.9, gap: 5.6, u5: 4.2, im: 3.5,           // b = naissances/an en Hexagone d’au moins un parent né dans un DROM : ESTIMATION (non publié par l’INSEE) ; pop = natifs 365 k (INSEE 2008) + descendants (approx) ; le/im Hexagone
     ppp: 42000, gi: 0.32, tfr: 1.6, mmr: 10,
