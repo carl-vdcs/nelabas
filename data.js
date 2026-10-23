@@ -124,6 +124,7 @@ export const SOURCES = {
   canal2009: { t: 'AP, 16 déc. 2010 : condamnation d’Alain Huygues-Despointes (documentaire Canal+ 2009)', u: 'https://thegrio.com/2010/12/16/martinique-man-convicted-of-making-racist-remarks/' },
   indemnite1849: { t: 'CNRS, projet Repairs : base des indemnités versées aux propriétaires d’esclaves (1849)', u: 'https://esclavage-indemnites.fr/public/' },
   nonlieu2023: { t: 'Maire-info, 6 janv. 2023 : non-lieu chlordécone du tribunal judiciaire de Paris', u: 'https://www.maire-info.com/sante-publique/chlordecone-pour-la-justice-un-scandale-sanitaire-...-mais-pas-de-coupable-article-27065' },
+  hajjar2023: { t: 'Assemblée nationale, commission d’enquête sur le coût de la vie en outre-mer, rapport n° 1549 (J. Hajjar, G. Lenormand), juillet 2023', u: 'https://www.assemblee-nationale.fr/dyn/16/rapports/cecvom/l16b1549_rapport-enquete.pdf' },
   climat: { t: 'Réseau Action Climat, Outre-mer et changement climatique (juin 2025)', u: 'https://www.maire-info.com/outre-mer/les-outre-mer-gravement-menaces-par-le-rechauffement-climatique-article-29759' },
 };
 
