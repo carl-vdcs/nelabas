@@ -27,6 +27,8 @@ const RULES = [
   { id: 'partner_none', why: 'sans partenaire : pas de partenaire nommé', test: (S, l, c) => !c.partner && c.ptName && !S.fam.kids.some(k => k.name === c.ptName) && !(S.flags.friends || []).some(f => f.name === c.ptName) && new RegExp('\\b' + c.ptName + '\\b').test(l.t) && !/sépar|meurt|divorc|quitt|ex-|ancien|Tata /i.test(l.t) ? l.t : null },
   { id: 'mom_home', why: 'mère au foyer / sans emploi : elle ne « rentre pas à 20 h »', test: (S, l, c) => c.momHome && /Ta mère rentre à 20 h/.test(l.t) ? l.t : null },
   { id: 'rich_tight', why: 'famille aisée (q≥4, élite) : pas de « serre le budget »', test: (S, l, c) => c.rich && /serre le budget|serrent le budget|Pas d’argent pour les clubs/.test(l.t) ? l.t : null },
+  { id: 'fact_place', why: 'un fait cité parle du territoire où l’on vit (pas « dans les DROM » depuis l’Hexagone)', test: (S, l, c) => c.cur === 'DIA' && !c.away && l.f && /^Dans les DROM(?! comme)|des DROM passent|^Les 15-24 ans des DROM/.test(l.f) ? l.f : null },
+  { id: 'fact_sex', why: 'un fait sur « les femmes » n’illustre pas la vie d’un homme (et inversement)', test: (S, l, c) => l.f && (c.sex === 'M' && /des femmes victimes/.test(l.f) && !/hommes/.test(l.f)) ? l.f : null },
   { id: 'cyclone_echo', why: '« après le cyclone » sans cyclone récent', test: (S, l, c) => /Après le cyclone/.test(l.t) && !(c.rainY != null && c.age - c.rainY <= 1) ? l.t : null },
   { id: 'sex_f', why: 'texte féminin pour un homme', test: (S, l, c) => c.sex === 'M' && /\b(es enceinte|tombes enceinte|premières règles|ménopause|mammographie|chabine|endométriose|accouch)/i.test(l.t) ? l.t : null },
   { id: 'sex_agree', why: 'accords au sexe du joueur (seul·e, né·e, papa/maman)', test: (S, l, c) => (c.sex === 'M' && /Tu l’élèves seule|\bla seule de ta promo|\bnée là-bas|dit « maman » pour la première/.test(l.t)) || (c.sex === 'F' && /Tu l’élèves seul\b|\ble seul de ta promo|\bné là-bas|dit « papa » pour la première/.test(l.t)) ? l.t : null },
@@ -47,6 +49,7 @@ const LIFE_RULES = [
   { id: 'lycee_dec', why: 'tout lycéen a eu la décision du lycée (nom, bus, internat)', test: S => S.flags.bac && !S.flags.daeu && !S.flags.prive && !(S.decisions || []).some(d => d.id === 'lycee15') ? 'bac sans décision lycée' : null },
   { id: 'college_dec', why: 'tout bachelier a eu la décision après le bac', test: S => S.flags.bac && !S.flags.daeu && S.deathAt.age > 20 && !(S.decisions || []).some(d => d.id === 'college') ? 'bac sans décision post-bac' : null },
   { id: 'fam_income_jump', why: 'avant 18 ans, le revenu familial ne chute pas de plus de 50 % en un an', test: S => S.flags.famJump ? S.flags.famJump : null },
+  { id: 'edu_label', why: 'le niveau d’études affiché suit le parcours (pas de « bac » sans bac)', test: S => { const e = E.summary().edu; return (e === 'bac' && !S.flags.bac) || (/licence|bac\+5/.test(e) && !S.flags.diplome && !S.flags.grande) ? e : null; } },
   { id: 'dup_ids', why: 'pas de doublon d’identifiant', test: () => { const seen = new Set(); for (const x of [...EVENTS, ...DECS]) { if (seen.has(x.id)) return x.id; seen.add(x.id); } return null; } },
 ];
 

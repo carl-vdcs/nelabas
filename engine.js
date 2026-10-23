@@ -590,7 +590,7 @@ export function summary() {
   const c = TBY[S.born], cur = TBY[S.cur];
   const years = S.years;
   const happiest = years.length ? years.reduce((b, y) => y.h > b.h ? y : b, years[0]) : null;
-  const edu = ['sans diplôme', 'collège', 'brevet', 'bac', 'études supérieures', 'doctorat'][S.edu] || '';
+  const edu = (S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['sans diplôme', 'collège', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.edu]) || '';
   const work = {}; for (const y of years) if (y.inc > 0) work[y.cur] = (work[y.cur] || 0) + 1;
   return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.mainJob || S.job, married: S.fam.married, kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
 }

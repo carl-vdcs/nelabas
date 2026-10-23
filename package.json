@@ -11,7 +11,9 @@
     "calib": "node tests/calib.mjs 800",
     "smoke": "node tests/smoke.mjs",
     "test": "npm run check && npm run data && npm run static && npm run lint && npm run calib && npm run coverage",
-    "report": "node tests/report.mjs"
+    "report": "node tests/report.mjs",
+    "recit": "node tests/recit.mjs",
+    "review": "node tests/review.mjs 6"
   },
   "devDependencies": { "playwright": "1.49.1" }
 }
