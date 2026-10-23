@@ -125,6 +125,8 @@ export const SOURCES = {
   indemnite1849: { t: 'CNRS, projet Repairs : base des indemnités versées aux propriétaires d’esclaves (1849)', u: 'https://esclavage-indemnites.fr/public/' },
   nonlieu2023: { t: 'Maire-info, 6 janv. 2023 : non-lieu chlordécone du tribunal judiciaire de Paris', u: 'https://www.maire-info.com/sante-publique/chlordecone-pour-la-justice-un-scandale-sanitaire-...-mais-pas-de-coupable-article-27065' },
   hajjar2023: { t: 'Assemblée nationale, commission d’enquête sur le coût de la vie en outre-mer, rapport n° 1549 (J. Hajjar, G. Lenormand), juillet 2023', u: 'https://www.assemblee-nationale.fr/dyn/16/rapports/cecvom/l16b1549_rapport-enquete.pdf' },
+  sucre: { t: 'Loi n° 2013-453 du 3 juin 2013 (loi Lurel) : teneur en sucre et dates limites alignées sur l’Hexagone ; Pourquoi Docteur, 30 mai 2016', u: 'https://www.pourquoidocteur.fr/Articles/Question-d-actu/15862-Aliments-sucres-en-Outre-Mer-On-nous-expliquait-que-nous-etions-addict-au-sucre' },
+  dlc: { t: 'Assemblée nationale, question écrite n° 78428 (2015) sur les DLC prolongées outre-mer', u: 'https://www.assemblee-nationale.fr/dyn/14/questions/QANR5L14QE78428.pdf' },
   climat: { t: 'Réseau Action Climat, Outre-mer et changement climatique (juin 2025)', u: 'https://www.maire-info.com/outre-mer/les-outre-mer-gravement-menaces-par-le-rechauffement-climatique-article-29759' },
 };
 
