@@ -35,7 +35,7 @@ function meet() {
 }
 const payeur = () => dadHere() && momHere() ? 'tes parents paient' : momHere() ? 'ta mère paie' : dadHere() ? 'ton père paie' : 'ta grand-mère paie';
 
-function takeJob(id, pctHint) { const J = JOBS[id]; if (WORKING(S.job)) S.flags.lastJob = S.job; S.job = id; S.jobY = 0; S.pct = clamp(pctHint ?? (J.lo + rnd() * (J.hi - J.lo) * 0.4), J.lo, J.hi); S.flags.mainJob = S.flags.mainJob || id; S.flags.lastJob = id; S.stats.jobs = S.stats.jobs || []; if (!S.stats.jobs.includes(id)) S.stats.jobs.push(id); }
+function takeJob(id, pctHint) { const J = JOBS[id]; if (WORKING(S.job)) S.flags.lastPct = S.pct; if (WORKING(S.job)) S.flags.lastJob = S.job; S.job = id; S.jobY = 0; S.pct = clamp(pctHint ?? (J.lo + rnd() * (J.hi - J.lo) * 0.4), J.lo, J.hi); S.flags.mainJob = S.flags.mainJob || id; S.flags.lastJob = id; S.stats.jobs = S.stats.jobs || []; if (!S.stats.jobs.includes(id)) S.stats.jobs.push(id); }
 function jobPool() {
   const c = C(), e = S.edu; const w = {};
   const prev = S.flags.lastJob && S.flags.lastJob !== 'informal' ? S.flags.lastJob : null; // parcours : les offres suivent la filière
@@ -46,7 +46,7 @@ function jobPool() {
     if (S.flags.filiere === 'pro' && ['tech', 'construct', 'driver', 'hotel', 'nurse'].includes(id)) x *= 2; if (S.flags.filiere === 'gen' && ['clerk', 'civil', 'teacher'].includes(id)) x *= 1.5;
     if (S.flags.bts && ['tech', 'clerk', 'nurse', 'hotel'].includes(id)) x *= 2;
     if (prev) { const next = JOB_NEXT[prev] || []; const rank = CS_RANK[JOB_CS[id]] || 1; if (next.includes(id)) x *= 5; else if (rank < prevRank) x *= 0.03; else x *= 0.25; } // on ne redescend pas, on reste dans sa filière
-    if (S.age >= 45 && prev && !(JOB_NEXT[prev] || []).includes(id)) x *= 0.2; // après 45 ans, pas de reconversion improbable
+    if (S.age >= 40 && prev && !(JOB_NEXT[prev] || []).includes(id)) x *= 0.1; // après 40 ans, pas de reconversion improbable
     w[id] = Math.max(0.001, x); }
   return w;
 }
@@ -306,17 +306,17 @@ export const DECS = [
     ],
   },
   {
-    id: 'job', a: [16, 60], gap: 1, c: () => (S.job === 'seeking' || S.job === 'informal') && !S.school && chance((1 - unemp() * 0.8) * (S.focus === 'career' ? 1.6 : S.focus === 'learn' ? 1.1 : 0.5) * (S.flags.refuseY === S.age ? 0.25 : 1)), title: () => S.flags.refuseY === S.age - 1 || S.flags.refuseY === S.age ? 'Une autre offre' : 'Une offre', text: () => S.flags.refuseY === S.age - 1 || S.flags.refuseY === S.age ? 'Quelques mois après ton refus, une nouvelle proposition.' : S.flags.lastJob && S.flags.lastJob !== 'informal' ? `Dans ta branche, ${S.flags.lastJob === S.flags.mainJob ? 'on te connaît' : 'ton CV parle'} : une proposition.` : S.focus === 'career' ? 'Tes recherches donnent quelque chose.' : 'Une proposition arrive par un cousin.',
-    choices: () => { const [a, b] = pickJobs(); const off = id => { const J = JOBS[id]; const p = clamp(J.lo + rnd() * (J.hi - J.lo) * 0.5, J.lo, J.hi); return { id, p, eur: Math.round(incomeAt(C(), p) * (C().wage * 12 / incomeAt(C(), 0.5)) / 12) }; }; const o1 = off(a), o2 = off(b); return [
+    id: 'job', a: [16, 60], gap: 1, c: () => (S.job === 'seeking' || S.job === 'informal') && !S.school && (S.flags.jobAsk || 0) < 6 && chance((1 - unemp() * 0.8) * (S.focus === 'career' ? 1.6 : S.focus === 'learn' ? 1.1 : 0.5) * (S.flags.refuseY === S.age ? 0.25 : 1)), title: () => S.flags.refuseY === S.age - 1 || S.flags.refuseY === S.age ? 'Une autre offre' : 'Une offre', text: () => S.flags.refuseY === S.age - 1 || S.flags.refuseY === S.age ? 'Quelques mois après ton refus, une nouvelle proposition.' : S.flags.lastJob && S.flags.lastJob !== 'informal' ? `Dans ta branche, ${S.flags.lastJob === S.flags.mainJob ? 'on te connaît' : 'ton CV parle'} : une proposition.` : S.focus === 'career' ? 'Tes recherches donnent quelque chose.' : 'Une proposition arrive par un cousin.',
+    choices: () => { S.flags.jobAsk = (S.flags.jobAsk || 0) + 1; const [a, b] = pickJobs(); const off = id => { const J = JOBS[id]; let p = clamp(J.lo + rnd() * (J.hi - J.lo) * 0.5, J.lo, J.hi); if (id === S.flags.lastJob && S.flags.lastPct) p = Math.max(p, Math.min(J.hi, S.flags.lastPct * 1.05)); return { id, p, eur: Math.round(incomeAt(C(), p) * (C().wage * 12 / incomeAt(C(), 0.5)) / 12) }; }; const o1 = off(a), o2 = off(b); return [
       { t: `${jobName(o1.id, C())} — ${o1.eur} €/mois`, run: () => { takeJob(o1.id, o1.p); S.flags.refuseY = null; return `Tu commences comme ${jobName(o1.id, C())}.`; } },
       { t: `${jobName(o2.id, C())} — ${o2.eur} €/mois`, hide: o2.id === o1.id, run: () => { takeJob(o2.id, o2.p); S.flags.refuseY = null; return `Tu commences comme ${jobName(o2.id, C())}.`; } },
       { t: 'Refuser et continuer à chercher', run: () => { S.flags.refuseY = S.age; S.flags.refusedN = (S.flags.refusedN || 0) + 1; eff({ h: -2 }); return 'Tu refuses. Tu continues à chercher.'; } },
     ]; },
   },
   {
-    id: 'concours', a: [20, 45], gap: 3, c: () => isDrom() && S.edu >= 3 && !['civil', 'teacher', 'nurse', 'police'].includes(S.job) && (S.focus === 'career' || S.focus === 'learn' || S.job === 'seeking') && chance(C().pub / 100), title: () => 'Le concours', text: () => `Les inscriptions au concours de la fonction publique territoriale sont ouvertes. ${C().pub} % des salariés ${C().article} sont dans le public : c’est la voie royale, et la file est longue.`,
+    id: 'concours', a: [20, 45], gap: 5, c: () => isDrom() && S.edu >= 3 && (S.flags.concoursN || 0) < 2 && !S.flags.noConcours && !['civil', 'teacher', 'nurse', 'police'].includes(S.job) && (S.focus === 'career' || S.focus === 'learn' || S.job === 'seeking') && chance(C().pub / 100), title: () => 'Le concours', text: () => `Les inscriptions au concours de la fonction publique territoriale sont ouvertes. ${C().pub} % des salariés ${C().article} sont dans le public : c’est la voie royale, et la file est longue.`,
     choices: () => [
-      { t: 'Préparer et passer le concours', run: () => { const p = clamp(0.25 + (S.st.sm - 50) / 150 + (S.edu - 3) * 0.1 + (S.focusW.learn || 0) * 0.2, 0.1, 0.7); if (chance(p)) { takeJob('civil', 0.45); eff({ h: 6 }); return { t: 'Admis·e. Fonctionnaire territorial·e : la sécurité, enfin, et la majoration de traitement.', k: 'good', f: `${C().pub} % de l’emploi salarié ${C().article} est public, contre 22 % en Hexagone (INSEE 2024) ; les fonctionnaires y touchent une majoration de 40 % (Antilles-Guyane) à 53 % (Réunion)` }; } eff({ h: -4, sm: 2 }); return { t: 'Recalé·e. Des centaines de candidats pour quelques postes. Tu retenteras peut-être.', k: 'bad' }; } },
+      { t: 'Préparer et passer le concours', run: () => { S.flags.concoursN = (S.flags.concoursN || 0) + 1; const p = clamp(0.25 + (S.st.sm - 50) / 150 + (S.edu - 3) * 0.1 + (S.focusW.learn || 0) * 0.2, 0.1, 0.7); if (chance(p)) { takeJob('civil', 0.45); eff({ h: 6 }); return { t: 'Admis·e. Fonctionnaire territorial·e : la sécurité, enfin, et la majoration de traitement.', k: 'good', f: `${C().pub} % de l’emploi salarié ${C().article} est public, contre 22 % en Hexagone (INSEE 2024) ; les fonctionnaires y touchent une majoration de 40 % (Antilles-Guyane) à 53 % (Réunion)` }; } eff({ h: -4, sm: 2 }); return { t: 'Recalé·e. Des centaines de candidats pour quelques postes. Tu retenteras peut-être.', k: 'bad' }; } },
       { t: 'Non, pas pour moi', run: () => { S.flags.noConcours = 1; return 'Tu laisses passer le concours.'; } },
     ],
   },
@@ -343,15 +343,15 @@ export const DECS = [
     ],
   },
   {
-    id: 'partner', a: [20, 45], gap: 3, c: () => !S.fam.partner && chance(S.focus === 'family' || S.focus === 'play' || S.focus === 'faith' ? 0.75 : S.focus === 'work' ? 0.25 : 0.45), title: () => 'Une rencontre', text: () => { const m = meet(); return `${sx('Elle', 'Il')} s’appelle ${m.name}, ${m.age} ans, ${m.job}. ${m.where}`; },
-    choices: () => { const m = meet(); return [
+    id: 'partner', a: [20, 45], gap: 3, c: () => !S.fam.partner && (S.flags.meetN || 0) < 4 && !(S.flags.meetNo && S.age - S.flags.meetNo < 5) && chance(S.focus === 'family' || S.focus === 'play' || S.focus === 'faith' ? 0.75 : S.focus === 'work' ? 0.25 : 0.45), title: () => 'Une rencontre', text: () => { const m = meet(); return `${sx('Elle', 'Il')} s’appelle ${m.name}, ${m.age} ans, ${m.job}. ${m.where}`; },
+    choices: () => { const m = meet(); S.flags.meetN = (S.flags.meetN || 0) + 1; return [
       { t: `Se mettre ensemble avec ${m.name}`, run: () => { S.fam.partner = { name: m.name, sex: sx('F', 'M'), age: m.age, alive: true, job: m.jobId }; eff({ h: 6, so: 6 }); return `Tu te mets en couple avec ${m.name}.`; } },
       { t: `Se marier avec ${m.name}`, run: () => { S.fam.partner = { name: m.name, sex: sx('F', 'M'), age: m.age, alive: true, job: m.jobId }; S.fam.married = true; S.flags.wedAt = S.age; S.money -= 3000; eff({ h: 8, so: 8 }); return `Mariage avec ${m.name}. Toute la commune est là.`; } },
-      { t: 'Pas maintenant', run: () => 'Pas maintenant.' },
+      { t: 'Pas maintenant', run: () => { S.flags.meetNo = S.age; return 'Pas maintenant.'; } },
     ]; },
   },
   {
-    id: 'kid', a: [18, 42], gap: 2, c: () => S.fam.partner && !S.flags.ipv && ((S.flags.kidNo || 0) < 2 || chance(0.3)) && S.fam.kids.length < Math.round(C().tfr) + 1 && chance(clamp(C().tfr / 6, 0.2, 0.6) * (S.focus === 'family' ? 1.4 : S.focus === 'work' ? 0.6 : 1)), title: () => 'Un enfant ?', text: () => S.fam.kids.length ? 'Un autre enfant ?' : 'Un enfant ?',
+    id: 'kid', a: [18, 42], gap: 2, c: () => S.fam.partner && !S.flags.ipv && (S.flags.kidAsk || 0) < 4 && ((S.flags.kidNo || 0) < 2 || chance(0.3)) && S.fam.kids.length < Math.round(C().tfr) + 1 && chance(clamp(C().tfr / 6, 0.2, 0.6) * (S.focus === 'family' ? 1.4 : S.focus === 'work' ? 0.6 : 1)), title: () => 'Un enfant ?', text: () => (S.flags.kidAsk = (S.flags.kidAsk || 0) + 1) && S.fam.kids.length ? 'Un autre enfant ?' : 'Un enfant ?',
     choices: () => [
       { t: 'Oui', run: () => { S.flags.kidNo = 0; const sex = chance(0.51) ? 'M' : 'F'; let name = makeName(TBY[orig()].nm, sex).split(' ')[0]; for (let k = 0; k < 5 && (name === S.name.split(' ')[0] || S.fam.kids.some(x => x.name === name)); k++) name = makeName(TBY[orig()].nm, sex).split(' ')[0]; S.fam.kids.push({ name, sex, age: 0, alive: true, bornAt: S.age }); S.stats.kidsBorn++; eff({ h: 6, so: 5, hl: fem() ? -2 : 0 }); if (fem() && chance(C().mmr / 100000 * 8)) { die('mat'); return { t: 'Complications à l’accouchement.', k: 'loss' }; } return `Naissance de ${name}.`; } },
       { t: 'Pas maintenant', run: () => { S.flags.kidNo = (S.flags.kidNo || 0) + 1; return 'Pas maintenant.'; } },
@@ -367,7 +367,32 @@ export const DECS = [
     ],
   },
   {
-    id: 'vacances', a: [22, 70], gap: 4, c: () => workingP() && S.money > 1500 && chance(0.6), title: () => 'Les vacances', text: () => 'Trois semaines de congés. Où ?',
+    id: 'wedding', a: [22, 60], once: 1, c: () => S.fam.partner && !S.fam.married && !S.flags.ipv && chance(0.35), title: () => 'Se marier ?', text: () => `${S.fam.partner.name} en parle depuis des mois. La famille aussi. Une noce ${isDrom() ? 'ici, ça se fait grand : traiteur, orchestre, 150 personnes' : 'à la mairie, ou au pays avec tout le monde'}.`,
+    choices: () => [
+      { t: 'Grand mariage, toute la famille', run: () => { S.fam.married = true; S.flags.wedAt = S.age; const cost = isDrom() ? 6000 : 9000; S.money -= cost; eff({ h: 9, so: 9 }); return { t: `Mariage avec ${S.fam.partner.name}. Les cousins de partout, la musique jusqu’à l’aube. ${cost} € envolés.`, k: 'good' }; } },
+      { t: 'À la mairie, en petit comité', run: () => { S.fam.married = true; S.flags.wedAt = S.age; S.money -= 1000; eff({ h: 5, so: 3 }); return `Mariage simple avec ${S.fam.partner.name}. Repas chez ta mère.`; } },
+      { t: 'Rester comme ça', run: () => { eff({ h: -1 }); return `Pas de mariage. ${S.fam.partner.name} dit que ce n’est pas grave.`; } },
+    ],
+  },
+  {
+    id: 'parent_old', a: [38, 70], once: 1, c: () => !S.flags.carer && ((S.fam.mom.alive && S.fam.mom.age >= 76) || (S.fam.dad.alive && !S.fam.dad.absent && S.fam.dad.age >= 76)), title: () => 'Les parents vieillissent', text: () => { const who = S.fam.mom.alive && S.fam.mom.age >= 76 ? 'Ta mère' : 'Ton père'; return `${who} tombe, oublie le gaz, ne veut pas entendre parler de maison de retraite. ${famLà() ? 'Tu es à 7 000 km.' : S.fam.older + S.fam.younger > 0 ? 'Tes frères et sœurs regardent vers toi.' : 'Tu es l’unique.'}`; },
+    choices: () => [
+      { t: famLà() ? 'Rentrer au pays pour s’en occuper' : 'La prendre chez toi', run: () => { S.flags.carer = 1; if (famLà()) { S.cur = S.born; S.mig = false; eff({ h: -2, so: 6, hl: -2 }); return { t: 'Tu rentres. Le poste, l’appartement, les amis : laissés derrière. Mais tu es là.', f: 'Un tiers des aidants de 50-64 ans réduisent ou arrêtent leur activité (DREES) (approx)' }; } eff({ h: 1, so: 5, hl: -3 }); return { t: 'Tu deviens aidant·e. Les nuits sont courtes, les week-ends n’existent plus.', f: `${C().id === 'MYT' ? 'Mayotte ne compte aucun EHPAD' : 'Les DROM comptent 2 à 3 fois moins de places en EHPAD qu’en Hexagone'} ; la famille reste le premier lieu de prise en charge (DREES, approx)` }; } },
+      { t: 'Payer une aide à domicile', run: () => { S.flags.parentAide = 1; S.money -= 4000; eff({ h: -2, so: 1 }); return { t: 'Une dame vient chaque matin. 350 € par mois de ta poche, l’APA ne couvre pas tout.', k: 'bad' }; } },
+      { t: 'La maison de retraite', hide: C().id === 'MYT', run: () => { S.money -= 3000; eff({ h: -5, so: -3 }); return { t: `${S.fam.mom.alive && S.fam.mom.age >= 76 ? 'Elle' : 'Il'} ne te parle plus pendant un an. Les voisins jugent. 2 300 € par mois, la retraite n’en couvre pas la moitié.`, k: 'bad', f: 'Le reste à charge médian en EHPAD est de 1 950 €/mois en France (DREES 2023)' }; } },
+      { t: 'Laisser les frères et sœurs gérer', hide: S.fam.older + S.fam.younger === 0, run: () => { eff({ h: -3, so: -5 }); S.flags.famRift = 1; return { t: 'Ta sœur s’en occupe. Elle ne te le pardonnera pas tout à fait.', k: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'sibling_help', a: [26, 60], gap: 10, c: () => S.fam.older + S.fam.younger > 0 && workingP() && S.money > 2000 && chance(0.4), title: () => 'Un coup de main', text: () => `Ton ${S.fam.younger ? 'petit frère' : 'grand frère'} appelle. ${pick(['Caution d’appartement, 1 500 €. Il te rembourse « le mois prochain ».', 'Sa voiture est morte, il perd son travail sans voiture.', 'Il a une idée de snack, il lui manque 3 000 €.', 'Sa fille part étudier en Hexagone, le billet et le loyer.'])}`,
+    choices: () => [
+      { t: 'Donner sans compter', run: () => { S.money -= 2000; eff({ h: 2, so: 6 }); return { t: 'Tu donnes. Il ne rembourse pas. Mais à Noël, il est là.', f: 'Dans les DROM, l’entraide familiale est un filet de sécurité : les transferts entre ménages apparentés y sont bien plus fréquents qu’en Hexagone (INSEE, approx)' }; } },
+      { t: 'Prêter, avec un papier', run: () => { S.money -= 1500; S.flags.loanSib = S.age; eff({ so: 1 }); return 'Tu prêtes, reconnaissance de dette signée. La moitié reviendra.'; } },
+      { t: 'Refuser', run: () => { eff({ h: -2, so: -5 }); return { t: 'Tu refuses. Ta mère te le reproche au téléphone.', k: 'bad' }; } },
+    ],
+  },
+  {
+    id: 'vacances', a: [22, 70], gap: 8, c: () => workingP() && S.money > 1500 && (S.flags.vacN || 0) < 2 && chance(0.5), title: () => 'Les vacances', text: () => { S.flags.vacN = (S.flags.vacN || 0) + 1; return 'Trois semaines de congés. Où ?'; },
     choices: () => [
       { t: isDia() ? `Au pays, ${TBY[orig()].article}` : 'En Hexagone, voir la famille', run: () => { S.money -= isDia() ? 1500 : 1200; S.stats.tripsHome++; eff({ h: 6, so: 6 }); return isDia() ? 'Trois semaines au pays. Tu reprends l’accent en deux jours.' : 'Paris, la famille, le froid en juillet. Tu rentres content·e de rentrer.'; } },
       { t: isDrom() ? 'Dans la Caraïbe ou l’océan Indien (Cuba, Maurice, Sainte-Lucie)' : 'Ailleurs (Espagne, Maroc, Thaïlande)', run: () => { S.money -= 1800; eff({ h: 7, so: 2 }); return { t: isDrom() ? 'Une île voisine. Pour une fois, tu es le touriste.' : 'Un vol low-cost, un hôtel club. Tu ne penses à rien.', f: isDrom() ? 'Les liaisons aériennes inter-Caraïbes sont rares et chères : aller à Sainte-Lucie, à 40 km, coûte souvent plus que Paris (approx)' : null }; } },
@@ -431,7 +456,7 @@ export const DECS = [
     ],
   },
   {
-    id: 'care', a: [30, 80], gap: 3, c: () => Object.values(S.conds).some(c => !c.treated) && S.focus !== 'health', title: () => 'Se soigner ?', text: () => `Le médecin insiste pour un suivi régulier. ${isDrom() ? 'C’est loin, et le reste à charge pèse.' : ''}`,
+    id: 'care', a: [30, 80], gap: 6, c: () => (S.flags.careAsk || 0) < 3 && Object.values(S.conds).some(c => !c.treated) && S.focus !== 'health', title: () => 'Se soigner ?', text: () => (S.flags.careAsk = (S.flags.careAsk || 0) + 1) && `Le médecin insiste pour un suivi régulier. ${isDrom() ? 'C’est loin, et le reste à charge pèse.' : ''}`,
     choices: () => [
       { t: 'Suivre le traitement', run: () => { for (const k in S.conds) S.conds[k].treated = true; S.money -= 600; eff({ hl: 3 }); return 'Tu suis le traitement. Rendez-vous tous les trois mois.'; } },
       { t: 'Laisser traîner', run: () => { eff({ hl: -3 }); return { t: 'Tu laisses traîner.', k: 'bad' }; } },

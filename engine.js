@@ -322,6 +322,10 @@ export function planYear(EVENTS, DECS) {
   const ts = []; for (let i = 0; i < n; i++) ts.push(0.08 + (i + rnd() * 0.8) / n * 0.86);
   for (const at of ts) { const ev = chooseEvent(EVENTS, used); if (ev) { used.add(ev.id); queue(at, 'ev', ev.id); } }
   const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
+  // priorité : décisions jamais vues, puis famille, puis le reste ; un peu de hasard pour ne pas figer l'ordre
+  const nDec = id => (S.decisions || []).filter(x => x.id === id).length;
+  const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care'];
+  decs.sort((x, y) => (nDec(x.id) - nDec(y.id)) + (FAM.includes(y.id) ? 0.5 : 0) - (FAM.includes(x.id) ? 0.5 : 0) + (rnd() - 0.5));
   decs.slice(0, 2).forEach((d, i) => queue(0.3 + i * 0.3 + rnd() * 0.15, 'dec', d.id));
   if (MILESTONES.includes(S.age)) queue(0.03, 'ms', 'survive');
   if (REFLECT_AGES.includes(S.age)) queue(0.5, 'reflect', S.age);
