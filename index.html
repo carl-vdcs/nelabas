@@ -369,7 +369,7 @@ const hooks = {
   endYear() { E.endYear(hooks); if (S.phase === 'dead') showDeath(); },
   planYear() { E.planYear(EVENTS, DECS); renderAll(); saveCur(); },
   die() { E.die(); },
-  onParentDeath(w) { feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : S.fam.dad.absent ? 'Tu apprends que ton père est mort. Tu ne l’as pas connu.' : 'Ton père meurt.', 'loss')); renderFiche(); },
+  onParentDeath(w) { feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : S.fam.dad.absent && !S.fam.sep ? 'Tu apprends que ton père est mort. Tu ne l’as pas connu.' : S.fam.sep ? 'Ton père meurt. Vous ne vous parliez plus beaucoup.' : 'Ton père meurt.', 'loss')); renderFiche(); },
   onFamily(items) { for (const it of items) feedItem(E.log(it.t, it.k, it.f)); renderFiche(); renderGauges(); },
   onPartnerDeath() { feedItem(E.log(`${S.fam.partner.name} meurt.`, 'loss')); },
 };
