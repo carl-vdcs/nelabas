@@ -5,9 +5,10 @@
   "scripts": {
     "check": "node --check engine.js && node --check events.js && node --check data.js && node --check geo.js && node --check scene.js",
     "lint": "node lint.mjs 300",
+    "static": "node tests/static.mjs 70",
     "calib": "node tests/calib.mjs 800",
     "smoke": "node tests/smoke.mjs",
-    "test": "npm run check && npm run lint && npm run calib",
+    "test": "npm run check && npm run static && npm run lint && npm run calib",
     "report": "node tests/report.mjs"
   },
   "devDependencies": { "playwright": "1.49.1" }

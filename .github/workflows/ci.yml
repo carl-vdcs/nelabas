@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntaxe
         run: npm run check
+      - name: Lint statique du contenu (textes vs gardes, cliquet)
+        run: npm run static
       - name: Linter de récits (300 vies, 30 règles de cohérence)
         run: npm run lint
       - name: Calibrage statistique (800 vies)
