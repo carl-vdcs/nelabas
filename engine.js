@@ -288,7 +288,7 @@ export function planYear(EVENTS, DECS) {
   const used = new Set(S.recent.slice(-10));
   const ts = []; for (let i = 0; i < n; i++) ts.push(0.08 + (i + rnd() * 0.8) / n * 0.86);
   for (const at of ts) { const ev = chooseEvent(EVENTS, used); if (ev) { used.add(ev.id); queue(at, 'ev', ev.id); } }
-  const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
+  const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
   decs.slice(0, 2).forEach((d, i) => queue(0.3 + i * 0.3 + rnd() * 0.15, 'dec', d.id));
   if (MILESTONES.includes(S.age)) queue(0.03, 'ms', 'survive');
   if (REFLECT_AGES.includes(S.age)) queue(0.5, 'reflect', S.age);
@@ -309,6 +309,10 @@ function chooseEvent(EVENTS, used) {
 export function ensureFocus() { const o = focusOptions(); if (!o.length) { S.focus = null; return; } if (!S.focus || !o.includes(S.focus)) S.focus = S.auto ? autoFocus(o) : o[0]; }
 function autoFocus(o) { const pref = ['balance', 'family', 'study', 'work', 'health', 'play']; return pref.find(p => o.includes(p)) || o[0]; }
 
+// tire un événement en revérifiant sa condition à l'instant (l'état a pu changer depuis le début de l'année)
+export function fireEvent(EVENTS, id) { const ev = EVENTS.find(x => x.id === id); if (!ev) return null; if (ev.c && !ev.c()) return null; if (ev.t && !ev.t.includes(S.cur)) return null; const r = ev.run(); S.flags['ev_' + id] = S.age; S.recent.push(id); if (S.recent.length > 14) S.recent.shift(); if (!r) return null; return typeof r === 'string' ? log(r) : log(r.t, r.k, r.f); }
+// variantes : évite de répéter la même phrase d'un événement à variantes
+export function varied(key, arr) { const seen = S.flags['var_' + key] || []; const fresh = arr.filter(x => !seen.includes(x)); const pickFrom = fresh.length ? fresh : arr; const v = pickFrom[Math.floor(rnd() * pickFrom.length)]; S.flags['var_' + key] = fresh.length ? [...seen, v] : [v]; return v; }
 export function eff(e) { for (const k in e) if (S.st[k] != null) S.st[k] = clamp(S.st[k] + e[k], 0, 100); }
 export function log(t, k = 'ev', f) { const item = { a: S.age, t, k, f }; S.log.push(item); if (f) S.facts.push({ a: S.age, f }); return item; }
 
@@ -351,7 +355,7 @@ export function finances() {
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
   S.famIncome = Math.max(incomeAt(c, 0.5) * 0.45, incomeAt(c, S.famPct) * ((S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0.55) + (S.fam.mom.alive ? 0 : -0.3)));
-  if (a < 18) return;
+  if (a < 18) { S.money = 0; S.debt = 0; return; }
   // ménage : revenu du conjoint (≈ 70 % du tien s'il travaille), enfants à charge
   const ptInc = S.fam.partner && S.fam.partner.alive && chance(0.65) ? S.income * 0.7 : 0;
   const hh = S.income + ptInc;
@@ -440,7 +444,7 @@ export function die(forced, label) {
 }
 
 // ---------- décisions ----------
-export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
+export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
 export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; S.flags.lastDec = { id: p.id, t: ch.t, a: S.age, title: p.title }; (S.decisions = S.decisions || []).push({ id: p.id, t: ch.t, a: S.age, title: p.title, auto: !!S.auto }); const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
 
 // ---------- résumé ----------

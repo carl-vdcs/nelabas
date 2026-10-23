@@ -7,7 +7,7 @@ function runLife(opt = {}) {
   const S = E.newLife(opt); S.phase = 'life'; S.auto = true;
   const hooks = {
     fire(e) {
-      if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); if (!ev) return; const r = ev.run(); if (r) { if (typeof r === 'string') E.log(r); else E.log(r.t, r.k, r.f); } S.flags['ev_' + e.id] = S.age; S.recent.push(e.id); if (S.recent.length > 14) S.recent.shift(); }
+      if (e.type === 'ev') { E.fireEvent(EVENTS, e.id); }
       else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { const i = Math.floor(E.rnd() * S.pending.choices.length); E.choose(i); } }
     },
     endYear() { E.endYear(hooks); },

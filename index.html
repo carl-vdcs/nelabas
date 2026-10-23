@@ -326,7 +326,7 @@ function renderAll() { renderTop(); renderId(); renderGauges(); renderChips(); r
 let COMP = [];
 function runHeadless() {
   const me = S; const L = E.newLife({ paceMin: 10 }); L.phase = 'life'; L.auto = true;
-  const h = { fire(e) { if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); if (!ev) return; const r = ev.run(); if (r) { typeof r === 'string' ? E.log(r) : E.log(r.t, r.k, r.f); } L.flags['ev_' + e.id] = L.age; L.recent.push(e.id); if (L.recent.length > 14) L.recent.shift(); } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (L.pending) E.choose(Math.floor(E.rnd() * L.pending.choices.length)); } },
+  const h = { fire(e) { if (e.type === 'ev') { E.fireEvent(EVENTS, e.id); } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (L.pending) E.choose(Math.floor(E.rnd() * L.pending.choices.length)); } },
     endYear() { E.endYear(h); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); }, onParentDeath() { }, onPartnerDeath() { } };
   E.planYear(EVENTS, DECS); let g = 0; while (L.phase === 'life' && g++ < 100000) { E.tick(L.yearSec / 10, h); if (L.pending) E.choose(Math.floor(E.rnd() * L.pending.choices.length)); }
   E.setState(me); return L;
@@ -350,7 +350,7 @@ function renderFoot() {
 // ---------- hooks moteur ----------
 const hooks = {
   fire(e) {
-    if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); if (!ev) return; const r = ev.run(); if (r) { const l = typeof r === 'string' ? E.log(r) : E.log(r.t, r.k, r.f); feedItem(l); } S.flags['ev_' + e.id] = S.age; S.recent.push(e.id); if (S.recent.length > 14) S.recent.shift(); renderId(); renderGauges(); renderScene(); if (S.phase === 'dead') showDeath(); }
+    if (e.type === 'ev') { const l = E.fireEvent(EVENTS, e.id); if (l) feedItem(l); renderId(); renderGauges(); renderScene(); if (S.phase === 'dead') showDeath(); }
     else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { if (S.auto) { const i = autoPick(S.pending); const chosen = S.pending.choices[i].t; const title = S.pending.title; E.choose(i); feedItem({ a: S.age, t: `${title} — tu as choisi : « ${chosen} ».`, k: 'dec' }); const l = S.log[S.log.length - 1]; if (l && (l.k === 'dec' || l.k === 'loss')) feedItem(l); renderAll(); } else showDecision(); } }
     else if (e.type === 'ms') { const l = { a: S.age, t: ({ 1: 'Un an. Tu as passé la première année.', 5: 'Cinq ans.', 15: 'Quinze ans.', 30: 'Trente ans.', 50: 'Cinquante ans.', 65: 'Soixante-cinq ans.', 80: 'Quatre-vingts ans.', 90: 'Quatre-vingt-dix ans.', 100: 'Cent ans.' })[S.age] + ' ' + survivors(), k: 'ms' }; feedItem(l); }
     else if (e.type === 'reflect') { if (!S.auto) showReflect(e.id); }
