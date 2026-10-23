@@ -12,6 +12,7 @@ export const TERRITORIES = [
     urb: 65, agr: 4, net: 85, ter: 35, eys: 15.0, sm: 15, sf: 9, oop: 9, cm: 0, wh: 6.0,
     hom: 7.5, road: 10, suic: 6.0, suicM: 11.1, suicF: 1.9, hiv: 0.5,
     wage: 1900, pov: 34, med: 1310, price: 41.8, priceAll: 15.8, dia: 10.2, diaK: 1.8, ob: 20,
+    immo: { m2: 2700, maison: 260, terrain: 120, constr: 1900, indiv: 0.5, loyer: 11 }, // appart €/m², maison médiane k€, terrain €/m², construction €/m², part du foncier familial en indivision, loyer €/m² (Notaires, IEDOM, Observatoire des loyers, 2024-2025, approx)
     cs: { agr: 1.3, art: 8.8, cad: 9.9, int: 23.2, emp: 32.9, ouv: 18.1 }, pub: 32, empRate: 52, unemp: 15.8, halo: 12,
     htn: 29.9, scd: 297, ivg: 45, chlor: 81.3, chlorVTR: 14.3, dep: 37, doc: 319, water: 0, out: 25, neet: 25, unemp0: 17, youthUnemp: 35,
     ipv: 1.3, cyc: 0.15, slr: 1, haz: 'SQV', mig: 'DIA',
@@ -27,6 +28,7 @@ export const TERRITORIES = [
     urb: 70, agr: 4, net: 86, ter: 36, eys: 15.2, sm: 16, sf: 10, oop: 9, cm: 0, wh: 6.0,
     hom: 7.3, road: 12, suic: 6.2, suicM: 11.6, suicF: 2.0, hiv: 0.5,
     wage: 1950, pov: 29, med: 1360, price: 40.2, priceAll: 13.8, dia: 9.5, diaK: 1.5, ob: 20,
+    immo: { m2: 2900, maison: 280, terrain: 140, constr: 2000, indiv: 0.55, loyer: 12 },
     cs: { agr: 1.0, art: 6.9, cad: 10.5, int: 24.4, emp: 33.9, ouv: 19.3 }, pub: 32, empRate: 56, unemp: 13.5, halo: 11,
     htn: 31.5, scd: 343, ivg: 35.8, chlor: 85.5, chlorVTR: 18.7, dep: 44, doc: 332, water: 0, out: 25, neet: 25, unemp0: 13, youthUnemp: 31,
     ipv: 1.3, cyc: 0.12, slr: 1, haz: 'SQV', mig: 'DIA',
@@ -42,6 +44,7 @@ export const TERRITORIES = [
     urb: 85, agr: 6, net: 70, ter: 20, eys: 13.5, sm: 14, sf: 8, oop: 9, cm: 1, wh: 5.6,
     hom: 16.5, road: 15, suic: 8.8, suicM: 12.8, suicF: 5.4, hiv: 1.0, mal: 0.3,
     wage: 2000, pov: 53, med: 920, price: 39.4, priceAll: 13.7, dia: 3.8, diaK: 1.5, ob: 20,
+    immo: { m2: 2800, maison: 300, terrain: 90, constr: 2100, indiv: 0.3, loyer: 13, foncierEtat: 0.9 }, // 90 % du foncier appartient à l'État
     cs: { agr: 1.2, art: 5.0, cad: 9.0, int: 19.3, emp: 25.4, ouv: 22.5 }, pub: 43, empRate: 42, unemp: 15.2, halo: 22,
     htn: 22.7, scd: 227, ivg: 45, chlor: 0, chlorVTR: 0, dep: 52, doc: 242, water: 15, out: 10, neet: 31, unemp0: 15, youthUnemp: 32,
     ipv: 1.9, cyc: 0, slr: 1, haz: 'F', mig: 'DIA', mercure: 1,
@@ -57,6 +60,7 @@ export const TERRITORIES = [
     urb: 95, agr: 3, net: 88, ter: 30, eys: 15.0, sm: 21, sf: 17, oop: 9, cm: 0, wh: 6.1,
     hom: 2.0, road: 9, suic: 10.4, suicM: 18.0, suicF: 4.0, hiv: 0.1,
     wage: 1800, pov: 38, med: 1160, price: 36.7, priceAll: 8.9, dia: 8.4, diaK: 1.9, ob: 16,
+    immo: { m2: 2900, maison: 300, terrain: 150, constr: 1800, indiv: 0.35, loyer: 12 },
     cs: { agr: 1.4, art: 5.8, cad: 9.6, int: 22.5, emp: 33.6, ouv: 21.0 }, pub: 31, empRate: 55, unemp: 17, halo: 13,
     htn: 20.8, scd: 4551, ivg: 27.8, chlor: 0, chlorVTR: 0, dep: 32, doc: 364, water: 0, out: 14, neet: 27, unemp0: 18, youthUnemp: 38,
     ipv: 1.9, cyc: 0.2, slr: 1, haz: 'SV', mig: 'DIA',
@@ -72,6 +76,7 @@ export const TERRITORIES = [
     urb: 50, agr: 15, net: 55, ter: 8, eys: 11.0, sm: 10, sf: 2, oop: 15, cm: 5, wh: 5.2,
     hom: 5.7, road: 8, suic: 3.0, suicM: 5.0, suicF: 1.0, hiv: 0.2, mal: 0.1,
     wage: 1300, pov: 77, med: 260, price: 30.2, priceAll: 10.3, dia: 7, diaK: 1.5, ob: 18,
+    immo: { m2: 3100, maison: 220, terrain: 60, constr: 1700, indiv: 0.6, loyer: 14, informel: 0.4 }, // 4 logements sur 10 en tôle (INSEE 2017)
     cs: { agr: 3, art: 9, cad: 5, int: 13, emp: 24, ouv: 21 }, pub: 53, empRate: 32, unemp: 34, halo: 18,
     htn: 24, scd: 633, ivg: 18.9, chlor: 0, chlorVTR: 0, dep: 43, doc: 89, water: 33, out: 8, neet: 36, unemp0: 34, youthUnemp: 50,
     ipv: 1.7, cyc: 0.1, slr: 1, haz: 'SV', mig: 'DIA',
@@ -87,6 +92,7 @@ export const TERRITORIES = [
     urb: 95, agr: 1, net: 93, ter: 55, eys: 16.3, sm: 25, sf: 20, oop: 9, cm: 0, wh: 6.6,
     hom: 1.2, road: 5, suic: 13.2, suicM: 22.0, suicF: 6.0, hiv: 0.3,
     wage: 2100, pov: 22, med: 1500, price: 0, priceAll: 0, dia: 5.7, diaK: 1.0, ob: 18,
+    immo: { m2: 4200, maison: 350, terrain: 250, constr: 1800, indiv: 0.05, loyer: 18 }, // moyenne hors Paris intra-muros ; ajusté par région (HEX)
     cs: { agr: 0.3, art: 5, cad: 14, int: 24, emp: 27, ouv: 30 }, pub: 30, empRate: 63, unemp: 9, halo: 5,
     htn: 18, scd: 1500, ivg: 20.2, chlor: 0, chlorVTR: 0, dep: 25, doc: 341, water: 0, out: 0, neet: 13, unemp0: 9, youthUnemp: 17,
     ipv: 1.0, cyc: 0, slr: 0, haz: 'H', mig: 'GLP,MTQ,REU',

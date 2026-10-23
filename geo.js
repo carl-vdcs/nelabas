@@ -121,8 +121,8 @@ export const CPGE = {
 
 // Villes d'arrivée en Hexagone : poids (INSEE : deux tiers des Antillais en Île-de-France ; Réunionnais plus présents dans le Sud)
 export const HEX = {
-  idf: { nom: 'Île-de-France', villes: ['Paris', 'Créteil', 'Sarcelles', 'Évry', 'Bobigny', 'Argenteuil', 'Saint-Denis (93)'], loyer: 1.0 },
-  sud: { nom: 'le Sud (Toulouse, Montpellier, Bordeaux, Marseille)', villes: ['Toulouse', 'Montpellier', 'Bordeaux', 'Marseille'], loyer: 0.75 },
-  autre: { nom: 'une autre grande ville (Lyon, Lille, Nantes, Rennes)', villes: ['Lyon', 'Lille', 'Nantes', 'Rennes'], loyer: 0.7 },
+  idf: { nom: 'Île-de-France', villes: ['Paris', 'Créteil', 'Sarcelles', 'Évry', 'Bobigny', 'Argenteuil', 'Saint-Denis (93)'], loyer: 1.0, m2: 4600, m2Paris: 9500 },
+  sud: { nom: 'le Sud (Toulouse, Montpellier, Bordeaux, Marseille)', villes: ['Toulouse', 'Montpellier', 'Bordeaux', 'Marseille'], loyer: 0.75, m2: 3700 },
+  autre: { nom: 'une autre grande ville (Lyon, Lille, Nantes, Rennes)', villes: ['Lyon', 'Lille', 'Nantes', 'Rennes'], loyer: 0.7, m2: 3900 },
 };
 export function hexRegionW(orig) { return orig === 'REU' || orig === 'MYT' ? { idf: 45, sud: 35, autre: 20 } : { idf: 65, sud: 20, autre: 15 }; }

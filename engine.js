@@ -67,6 +67,9 @@ export function incomeAt(c, pct) { const s = sigmaOf(c); return c.ppp * 0.9 * Ma
 export function pctOfIncome(c, inc) { const s = sigmaOf(c); const mu = Math.log(c.ppp * 0.9) - s * s / 2; return normCdf((Math.log(Math.max(1, inc)) - mu) / s); }
 // affichage : PPA $ → euros ressentis (1in8b affiche les deux). Ici on affiche directement en € nets/mois.
 // conversion PPA → euros nets/mois : la médiane de la distribution = salaire médian du territoire
+// € → unités internes (revenu annuel PPA) et mensualité d'un crédit (taux 3,5 %, HCSF : 35 % d'effort, 25 ans max)
+export const toInt = (c, eur) => eur * incomeAt(c, 0.5) / (c.wage * 12);
+export const mensualite = (capital, years = 25, rate = 0.035) => { const r = rate / 12, n = years * 12; return capital * r / (1 - Math.pow(1 + r, -n)); };
 export const eurMois = (c, inc) => Math.round(inc * (c.wage * 12 / incomeAt(c, 0.5)) / 12);
 
 // ---------- métiers ----------
