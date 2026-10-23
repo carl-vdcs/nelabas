@@ -273,7 +273,7 @@ function renderFiche() {
   const sibs = (S.fam.older + S.fam.younger) ? `${S.fam.older ? S.fam.older + ' aîné·e·s' : ''}${S.fam.older && S.fam.younger ? ', ' : ''}${S.fam.younger ? S.fam.younger + ' cadet·te·s' : ''}` : 'aucun';
   $('#ficheBody').innerHTML = `<dl>
     <dt>Sexe</dt><dd>${S.sex === 'F' ? 'Femme' : 'Homme'}</dd>
-    <dt>Naissance</dt><dd>${esc(S.bornCity)}, ${S.born === 'DIA' ? 'Hexagone' : esc(E.TBY[S.born].nom)}</dd>
+    <dt>Naissance</dt><dd>${esc(S.bornCity)}, ${S.born === 'DIA' ? 'Hexagone' : esc(E.TBY[S.born].nom)}${S.born !== 'DIA' && S.bornHosp ? ` <small>(${esc(S.bornHosp.n)})</small>` : ''}</dd>
     <dt>Résidence</dt><dd>${esc(S.city)}, ${S.cur === 'DIA' ? 'Hexagone' : esc(c.nom)}${S.urban ? '' : ' · campagne'}</dd>
     <dt>Racines</dt><dd>${esc(S.roots)}${S.born === 'DIA' ? ` · famille ${esc(o.gentF)}` : ''}</dd>
     <dt>Religion</dt><dd>${RELN[S.rel]}</dd>

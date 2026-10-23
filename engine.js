@@ -2,6 +2,8 @@
 // Formules reprises de l'analyse de 1in8b (table de mortalité Gompertz calibrée,
 // revenu log-normal par Gini, causes de décès par bande d'âge), réécrites.
 import { TERRITORIES, HEXAGONE } from './data.js';
+import { maternite, HEX } from './geo.js';
+export { maternite, lycees, CPGE, HEX, hexRegionW } from './geo.js';
 
 // ---------- aléatoire ----------
 let _seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
@@ -299,7 +301,7 @@ export function newLife(opt = {}) {
     stats: { maxIncome: 0, decisions: 0, kidsBorn: 0, tripsHome: 0, remitTotal: 0 },
     facts: [],
   };
-  S.bornCity = S.city;
+  S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city);
   // chlordécone : imprégnation dès l'enfance, proportionnelle au taux adulte (approx : enfants un peu moins)
   if (c.chlor && (c.id === 'GLP' || c.id === 'MTQ') && chance(c.chlor / 100 * 0.9)) S.flags.chlor = 1;
   // drépanocytose : 1 naissance sur 227 (Guyane) à 1 sur 4 551 (Réunion) ; porteurs sains ~5 % dans les DROM
@@ -378,7 +380,7 @@ export function schoolYear() {
     else S.school = 'lyc';
   }
   if (a === 18 && S.school === 'lyc') { S.edu = 3; S.school = null; S.flags.bac = 1; }
-  if (S.school === 'uni') { S.schoolY++; if (S.schoolY >= (S.flags.uniLen || 3)) { S.school = null; S.edu = Math.max(S.edu, 4); S.job = 'seeking'; S.flags.diplome = 1; } }
+  if (S.school === 'uni') { S.schoolY++; if (S.flags.prepa && !S.flags.prepaRes) { if (S.schoolY >= 2) S.flags.prepaDone = 1; } else if (S.schoolY >= (S.flags.uniLen || 3)) { S.school = null; S.edu = Math.max(S.edu, 4); S.job = 'seeking'; S.flags.diplome = 1; } }
 }
 
 export function finances() {
@@ -400,7 +402,8 @@ export function finances() {
   const hh = S.income + ptInc;
   const kids = S.fam.kids.filter(k => k.alive && k.age < 18 && !k.far).length;
   // taux d'épargne : ~0 pour les bas revenus, jusqu'à 25 % en haut ; la vie chère rogne l'épargne mais ne crée pas de dette structurelle
-  const saveRate = clamp(0.02 + (S.pct - 0.3) * 0.35 - kids * 0.03 - (c.price || 0) / 100 * 0.12 + (S.focusW.work || 0) * 0.03 - (S.focusW.hobby || 0) * 0.02, 0, 0.3); // pas de déficit structurel : la pauvreté, c'est zéro épargne, pas une dette infinie
+  const loyer = c.id === 'DIA' && S.flags.hexRegion ? (HEX[S.flags.hexRegion].loyer - 0.75) * 0.1 : 0; // Île-de-France : loyers qui mangent l'épargne ; province : un peu d'air
+  const saveRate = clamp(0.02 + (S.pct - 0.3) * 0.35 - kids * 0.03 - (c.price || 0) / 100 * 0.12 - loyer + (S.focusW.work || 0) * 0.03 - (S.focusW.hobby || 0) * 0.02, 0, 0.3); // pas de déficit structurel : la pauvreté, c'est zéro épargne, pas une dette infinie
   let flow = hh * saveRate;
   // crédit immobilier : remboursé sur 25 ans dans les dépenses
   if (S.mortgage && S.mortgage.left > 0) { const pay = Math.min(S.mortgage.left, S.mortgage.annual); S.mortgage.left -= pay; S.debt = Math.max(0, S.debt - pay); flow -= pay * 0.6; } // 40 % du crédit remplace un loyer

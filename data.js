@@ -91,7 +91,7 @@ export const TERRITORIES = [
     htn: 18, scd: 1500, ivg: 20.2, chlor: 0, chlorVTR: 0, dep: 25, doc: 341, water: 0, out: 0, neet: 13, unemp0: 9, youthUnemp: 17,
     ipv: 1.0, cyc: 0, slr: 0, haz: 'H', mig: 'GLP,MTQ,REU',
     contexte: 'Les enfants nés en Hexagone de parents ultramarins : deux tiers des Antillais vivent en Île-de-France. Le pays est à 7 000 km, un billet d’avion coûte un mois de salaire.',
-    villes: ['Paris', 'Créteil', 'Sarcelles', 'Évry', 'Bobigny', 'Lyon', 'Marseille', 'Toulouse'],
+    villes: ['Paris', 'Créteil', 'Sarcelles', 'Évry', 'Bobigny', 'Argenteuil', 'Lyon', 'Marseille', 'Toulouse', 'Bordeaux', 'Montpellier'],
     campagne: [],
     diaspora: 1,
     // pov 22 % et dep 25 % : la diaspora est surreprésentée en quartiers populaires d’IDF ; valeur Hexagone 15,4 % relevée (approx, à sourcer : INSEE TeO2)
