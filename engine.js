@@ -275,7 +275,7 @@ export function parentJob(c, q, sex) {
 // revenu d'un parent : position dans la fourchette de son métier, tirée selon le quintile
 export function jobPct(job, q) { const J = JOBS[job]; if (!J || !WORKING(job)) return 0; return clamp(J.lo + (J.hi - J.lo) * clamp((q - 1) / 4 + (rnd() - 0.5) * 0.3, 0.05, 0.95), J.lo, J.hi); }
 export function parentIncome(c, P) { if (!P || !P.alive || P.absent || !WORKING(P.job)) return 0; if (P.pct == null) P.pct = jobPct(P.job, S.q); let inc = incomeAt(c, P.pct); if (JOB_PUB[P.job] && c.id !== 'DIA') inc *= 1 + (JOB_PUB[P.job] >= 0.8 ? (c.id === 'REU' ? 0.53 : 0.4) : 0.2); return Math.max(inc, incomeAt(c, 0.5) * 0.62); }
-export function famIncomeCalc(c) { const mom = parentIncome(c, S.fam.mom), dad = parentIncome(c, S.fam.dad); const n = (S.fam.mom.alive ? 1 : 0) + (S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0); const floor = incomeAt(c, 0.5) * (n ? 0.4 : 0.3); return Math.max(mom + dad, floor); }
+export function famIncomeCalc(c) { const mom = parentIncome(c, S.fam.mom), dad = parentIncome(c, S.fam.dad); const n = (S.fam.mom.alive ? 1 : 0) + (S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0); let floor = incomeAt(c, 0.5) * (n ? 0.4 : 0.3); if (S.elite) floor = Math.max(floor, incomeAt(c, 0.85)); /* patrimoine, loyers, réseau : une famille aisée ne tombe pas au RSA du jour au lendemain */ const v = Math.max(mom + dad, floor); S.famIncome = S.famIncome ? S.famIncome * 0.6 + v * 0.4 : v; return S.famIncome; } // lissé : une baisse se fait sur deux ou trois ans
 // carnation (0 = très foncée … 6 = blanche), tirée des racines ; sert aux avatars et aux biais de colorisme
 export const SKINS = ['#4A2E1F', '#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#D4A98A', '#EFD3BF'];
 export function skinFromRoots(roots, elite) {
@@ -337,7 +337,7 @@ export function newLife(opt = {}) {
     facts: [],
   };
   S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city); S.flags.skin = skinFromRoots(roots, elite);
-  S.famIncome = famIncomeCalc(c); S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
+  S.famIncome = 0; famIncomeCalc(c); S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
   if (!S.elite) S.q = clamp(Math.ceil(S.famPct * 5), 1, 5); // le quintile affiché suit le revenu réel des parents
   // grands-parents : pour un enfant né en Hexagone, ils sont souvent restés au pays (sauf génération BUMIDOM déjà installée)
   S.flags.gpsFar = c.id === 'DIA' ? !chance(0.4) : false;
@@ -436,7 +436,7 @@ export function finances() {
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
-  S.famIncome = famIncomeCalc(c); if (a < 18) S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
+  famIncomeCalc(c); if (a < 18) S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
   if (a < 18) { S.money = 0; S.debt = 0; return; }
   // ménage : revenu du conjoint (≈ 70 % du tien s'il travaille), enfants à charge
   const ptInc = S.fam.partner && S.fam.partner.alive && chance(0.65) ? S.income * 0.7 : 0;
@@ -554,7 +554,7 @@ function parentYear(c, a) {
     const nm = who === 'mom' ? 'Ta mère' : 'Ton père'; const nmL = who === 'mom' ? 'ta mère' : 'ton père';
     const pa = P.age; P.conds = P.conds || {};
     // emploi : perte selon le territoire, retour selon le taux d'emploi
-    if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && chance(0.025 * (c.unemp / 10))) { P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
+    if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && P.job !== 'politician' && !S.elite && chance(0.025 * (c.unemp / 10))) { P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
     else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); P.pct = jobPct(P.job, Math.min(S.q, 3)); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${jobName(P.job, c)}.`, k: 'good' }); }
     // retraite
     if (pa === 64 && WORKING(P.job)) { P.job = 'retired'; out.push({ t: `${nm} prend sa retraite.` }); }

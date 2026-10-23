@@ -288,7 +288,7 @@ function renderFiche() {
     <dt>Racines</dt><dd>${esc(S.roots)}${S.born === 'DIA' ? ` · famille ${esc(o.gentF)}` : ''}</dd>
     <dt>Religion</dt><dd>${RELN[S.rel]}</dd>
     <dt>Milieu</dt><dd>${esc(S.classe)} · ${['les 20 % les plus modestes', 'les 20 % modestes', 'les 20 % du milieu', 'les 20 % aisés', 'les 20 % les plus aisés'][S.q - 1]}</dd>
-    <dt>Études</dt><dd>${['pas encore à l’école', 'école', 'brevet', 'bac', 'diplôme du supérieur', 'doctorat'][S.school ? Math.max(0, S.edu) : S.edu] || '—'}${S.school ? ' (en cours)' : ''}</dd>
+    <dt>Études</dt><dd>${['pas encore à l’école', 'école', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.school ? Math.max(0, S.edu) : S.edu] || '—'}${S.school ? ' (en cours)' : ''}</dd>
   </dl><h4>Famille</h4><dl>
     <dt>Mère</dt><dd>${esc(m.name)} · ${m.alive ? m.age + ' ans · ' + J(m.job) : '† ' + m.age + ' ans'}</dd>
     <dt>Père</dt><dd>${d.absent ? 'absent' : esc(d.name) + ' · ' + (d.alive ? d.age + ' ans · ' + J(d.job) : '† ' + d.age + ' ans')}</dd>

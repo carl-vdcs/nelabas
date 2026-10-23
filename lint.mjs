@@ -26,6 +26,7 @@ const RULES = [
   { id: 'work_out', why: 'pas au travail (retraité, chômeur, enfant) : pas de « avant le travail »', test: (S, l, c) => !c.working && /avant le travail|ton patron|tes collègues/i.test(l.t) && !/pas de travail|sans travail|cherch/i.test(l.t) ? l.t : null },
   { id: 'partner_none', why: 'sans partenaire : pas de partenaire nommé', test: (S, l, c) => !c.partner && c.ptName && !S.fam.kids.some(k => k.name === c.ptName) && !(S.flags.friends || []).some(f => f.name === c.ptName) && new RegExp('\\b' + c.ptName + '\\b').test(l.t) && !/sépar|meurt|divorc|quitt|ex-|ancien|Tata /i.test(l.t) ? l.t : null },
   { id: 'mom_home', why: 'mère au foyer / sans emploi : elle ne « rentre pas à 20 h »', test: (S, l, c) => c.momHome && /Ta mère rentre à 20 h/.test(l.t) ? l.t : null },
+  { id: 'rich_tight', why: 'famille aisée (q≥4, élite) : pas de « serre le budget »', test: (S, l, c) => c.rich && /serre le budget|serrent le budget|Pas d’argent pour les clubs/.test(l.t) ? l.t : null },
   { id: 'cyclone_echo', why: '« après le cyclone » sans cyclone récent', test: (S, l, c) => /Après le cyclone/.test(l.t) && !(c.rainY != null && c.age - c.rainY <= 1) ? l.t : null },
   { id: 'sex_f', why: 'texte féminin pour un homme', test: (S, l, c) => c.sex === 'M' && /\b(es enceinte|tombes enceinte|premières règles|ménopause|mammographie|chabine|endométriose|accouch)/i.test(l.t) ? l.t : null },
   { id: 'sex_agree', why: 'accords au sexe du joueur (seul·e, né·e, papa/maman)', test: (S, l, c) => (c.sex === 'M' && /Tu l’élèves seule|\bla seule de ta promo|\bnée là-bas|dit « maman » pour la première/.test(l.t)) || (c.sex === 'F' && /Tu l’élèves seul\b|\ble seul de ta promo|\bné là-bas|dit « papa » pour la première/.test(l.t)) ? l.t : null },
@@ -45,6 +46,7 @@ const LIFE_RULES = [
   { id: 'quebec_isolated', why: 'au Québec, aucun événement territorial (t:) ne tire', test: S => S.flags.qcBad ? S.flags.qcBad : null },
   { id: 'lycee_dec', why: 'tout lycéen a eu la décision du lycée (nom, bus, internat)', test: S => S.flags.bac && !S.flags.daeu && !S.flags.prive && !(S.decisions || []).some(d => d.id === 'lycee15') ? 'bac sans décision lycée' : null },
   { id: 'college_dec', why: 'tout bachelier a eu la décision après le bac', test: S => S.flags.bac && !S.flags.daeu && S.deathAt.age > 20 && !(S.decisions || []).some(d => d.id === 'college') ? 'bac sans décision post-bac' : null },
+  { id: 'fam_income_jump', why: 'avant 18 ans, le revenu familial ne chute pas de plus de 50 % en un an', test: S => S.flags.famJump ? S.flags.famJump : null },
   { id: 'dup_ids', why: 'pas de doublon d’identifiant', test: () => { const seen = new Set(); for (const x of [...EVENTS, ...DECS]) { if (seen.has(x.id)) return x.id; seen.add(x.id); } return null; } },
 ];
 
@@ -52,11 +54,11 @@ function runLife(terr, i) {
   E.seed(1000 + i); // déterministe : même résultat ici et en CI
   const S = E.newLife(terr ? { territory: terr } : {}); S.phase = 'life'; S.auto = true;
   const ctxAt = []; // état au moment de chaque ligne de log
-  const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, momHome: S.fam.mom.alive && ['homemaker', 'seeking'].includes(S.fam.mom.job), gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
+  const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, momHome: S.fam.mom.alive && ['homemaker', 'seeking'].includes(S.fam.mom.job), rich: S.q >= 4 || !!S.elite, gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
   const mark = () => { while (ctxAt.length < S.log.length) ctxAt.push(snap()); };
   const hooks = {
     fire(e) { if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); const r = E.fireEvent(EVENTS, e.id); if (S.away && ev && ev.t && r) S.flags.qcBad = e.id; } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) E.choose(Math.floor(E.rnd() * S.pending.choices.length)); } mark(); if (S.fam.partner) S.flags.lastPt = S.fam.partner.name; },
-    endYear() { E.endYear(hooks); mark(); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); },
+    endYear() { const f0 = S.famIncome; E.endYear(hooks); if (S.age < 18 && f0 && S.famIncome < f0 * 0.5) S.flags.famJump = `${S.age} ans : ${Math.round(f0)} → ${Math.round(S.famIncome)}`; mark(); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); },
     onParentDeath(w) { E.log(w === 'mom' ? 'Ta mère meurt.' : 'Ton père meurt.', 'loss'); mark(); }, onPartnerDeath() { E.log(`${S.fam.partner.name} meurt.`, 'loss'); mark(); }, onFamily(items) { for (const it of items) E.log(it.t, it.k, it.f); mark(); },
   };
   E.planYear(EVENTS, DECS); let g = 0;
