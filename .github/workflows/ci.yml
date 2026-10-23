@@ -7,6 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions: { contents: read, issues: write }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,7 +25,11 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test navigateur
         timeout-minutes: 6
-        run: timeout 300 npm run smoke
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          set +e; timeout 300 npm run smoke > smoke.log 2>&1; RC=$?; cat smoke.log
+          if [ $RC -ne 0 ]; then { echo '```'; tail -c 6000 smoke.log; echo '```'; } > body.md; gh api "repos/${GITHUB_REPOSITORY}/issues" -f title="CI : test navigateur en échec ($(git rev-parse --short HEAD))" -F body=@body.md -f 'labels[]=ci' >/dev/null || true; fi
+          exit $RC
   promote:
     # dev → main seulement si tout passe ; GitHub Pages déploie main
     needs: test
