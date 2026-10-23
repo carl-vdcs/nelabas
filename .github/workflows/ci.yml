@@ -17,11 +17,14 @@ jobs:
         run: npm run lint
       - name: Calibrage statistique (800 vies)
         run: npm run calib
-      - name: Test navigateur
+      - name: Installer Chromium
+        timeout-minutes: 8
         run: |
           npm install --no-audit --no-fund
           npx playwright install --with-deps chromium
-          npm run smoke
+      - name: Test navigateur
+        timeout-minutes: 6
+        run: timeout 300 npm run smoke
   promote:
     # dev → main seulement si tout passe ; GitHub Pages déploie main
     needs: test
