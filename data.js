@@ -13,7 +13,7 @@ export const TERRITORIES = [
     hom: 7.5, road: 10, suic: 6.0, suicM: 11.1, suicF: 1.9, hiv: 0.5,
     wage: 1900, pov: 34, med: 1310, price: 41.8, priceAll: 15.8, dia: 10.2, diaK: 1.8, ob: 20,
     cs: { agr: 1.3, art: 8.8, cad: 9.9, int: 23.2, emp: 32.9, ouv: 18.1 }, pub: 32, empRate: 52, unemp: 15.8, halo: 12,
-    chlor: 81.3, chlorVTR: 14.3, dep: 37, doc: 319, water: 0, out: 25, neet: 25, unemp0: 17, youthUnemp: 35,
+    htn: 29.9, scd: 297, chlor: 81.3, chlorVTR: 14.3, dep: 37, doc: 319, water: 0, out: 25, neet: 25, unemp0: 17, youthUnemp: 35,
     ipv: 1.3, cyc: 0.15, slr: 1, haz: 'SQV', mig: 'DIA',
     contexte: 'Archipel de 380 000 habitants, département depuis 1946. Les sols sont marqués par le chlordécone, les prix par l’insularité, et un quart des natifs vivent en Hexagone.',
     villes: ['Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', 'Basse-Terre', 'Sainte-Anne', 'Le Moule'],
@@ -28,7 +28,7 @@ export const TERRITORIES = [
     hom: 7.3, road: 12, suic: 6.2, suicM: 11.6, suicF: 2.0, hiv: 0.5,
     wage: 1950, pov: 29, med: 1360, price: 40.2, priceAll: 13.8, dia: 9.5, diaK: 1.5, ob: 20,
     cs: { agr: 1.0, art: 6.9, cad: 10.5, int: 24.4, emp: 33.9, ouv: 19.3 }, pub: 32, empRate: 56, unemp: 13.5, halo: 11,
-    chlor: 85.5, chlorVTR: 18.7, dep: 44, doc: 332, water: 0, out: 25, neet: 25, unemp0: 13, youthUnemp: 31,
+    htn: 31.5, scd: 343, chlor: 85.5, chlorVTR: 18.7, dep: 44, doc: 332, water: 0, out: 25, neet: 25, unemp0: 13, youthUnemp: 31,
     ipv: 1.3, cyc: 0.12, slr: 1, haz: 'SQV', mig: 'DIA',
     contexte: 'Île de 355 000 habitants qui en perd chaque année : les naissances ont chuté d’un tiers en dix ans et les jeunes partent. Chlordécone, vie chère, économie tenue par quelques groupes.',
     villes: ['Fort-de-France', 'Le Lamentin', 'Schœlcher', 'Le Robert', 'Ducos', 'Rivière-Salée'],
@@ -43,7 +43,7 @@ export const TERRITORIES = [
     hom: 16.5, road: 15, suic: 8.8, suicM: 12.8, suicF: 5.4, hiv: 1.0, mal: 0.3,
     wage: 2000, pov: 53, med: 920, price: 39.4, priceAll: 13.7, dia: 3.8, diaK: 1.5, ob: 20,
     cs: { agr: 1.2, art: 5.0, cad: 9.0, int: 19.3, emp: 25.4, ouv: 22.5 }, pub: 43, empRate: 42, unemp: 15.2, halo: 22,
-    chlor: 0, chlorVTR: 0, dep: 52, doc: 242, water: 15, out: 10, neet: 31, unemp0: 15, youthUnemp: 32,
+    htn: 22.7, scd: 227, chlor: 0, chlorVTR: 0, dep: 52, doc: 242, water: 15, out: 10, neet: 31, unemp0: 15, youthUnemp: 32,
     ipv: 1.9, cyc: 0, slr: 1, haz: 'F', mig: 'DIA', mercure: 1,
     contexte: 'Territoire amazonien grand comme le Portugal, 290 000 habitants, la population la plus jeune de France. Plus d’un habitant sur deux sous le seuil de pauvreté, orpaillage, déserts médicaux.',
     villes: ['Cayenne', 'Matoury', 'Rémire-Montjoly', 'Kourou', 'Saint-Laurent-du-Maroni'],
@@ -58,7 +58,7 @@ export const TERRITORIES = [
     hom: 2.0, road: 9, suic: 10.4, suicM: 18.0, suicF: 4.0, hiv: 0.1,
     wage: 1800, pov: 38, med: 1160, price: 36.7, priceAll: 8.9, dia: 8.4, diaK: 1.9, ob: 16,
     cs: { agr: 1.4, art: 5.8, cad: 9.6, int: 22.5, emp: 33.6, ouv: 21.0 }, pub: 31, empRate: 55, unemp: 17, halo: 13,
-    chlor: 0, chlorVTR: 0, dep: 32, doc: 364, water: 0, out: 14, neet: 27, unemp0: 18, youthUnemp: 38,
+    htn: 20.8, scd: 4551, chlor: 0, chlorVTR: 0, dep: 32, doc: 364, water: 0, out: 14, neet: 27, unemp0: 18, youthUnemp: 38,
     ipv: 1.9, cyc: 0.2, slr: 1, haz: 'SV', mig: 'DIA',
     contexte: 'Île de 900 000 habitants dans l’océan Indien, société créole métissée. Chômage des jeunes, diabète deux fois plus fréquent qu’en Hexagone, violences conjugales plus élevées.',
     villes: ['Saint-Denis', 'Saint-Paul', 'Saint-Pierre', 'Le Tampon', 'Saint-André', 'Saint-Louis'],
@@ -73,7 +73,7 @@ export const TERRITORIES = [
     hom: 5.7, road: 8, suic: 3.0, suicM: 5.0, suicF: 1.0, hiv: 0.2, mal: 0.1,
     wage: 1300, pov: 77, med: 260, price: 30.2, priceAll: 10.3, dia: 7, diaK: 1.5, ob: 18,
     cs: { agr: 3, art: 9, cad: 5, int: 13, emp: 24, ouv: 21 }, pub: 53, empRate: 32, unemp: 34, halo: 18,
-    chlor: 0, chlorVTR: 0, dep: 43, doc: 89, water: 33, out: 8, neet: 36, unemp0: 34, youthUnemp: 50,
+    htn: 24, scd: 633, chlor: 0, chlorVTR: 0, dep: 43, doc: 89, water: 33, out: 8, neet: 36, unemp0: 34, youthUnemp: 50,
     ipv: 1.7, cyc: 0.1, slr: 1, haz: 'SV', mig: 'DIA',
     contexte: 'Département depuis 2011, 320 000 habitants, 77 % sous le seuil de pauvreté. Un tiers sans eau courante, 89 médecins pour 100 000 habitants, dévasté par le cyclone Chido en 2024.',
     villes: ['Mamoudzou', 'Koungou', 'Dzaoudzi', 'Dembéni'],
@@ -88,7 +88,7 @@ export const TERRITORIES = [
     hom: 1.2, road: 5, suic: 13.2, suicM: 22.0, suicF: 6.0, hiv: 0.3,
     wage: 2100, pov: 22, med: 1500, price: 0, priceAll: 0, dia: 5.7, diaK: 1.0, ob: 18,
     cs: { agr: 0.3, art: 5, cad: 14, int: 24, emp: 27, ouv: 30 }, pub: 30, empRate: 63, unemp: 9, halo: 5,
-    chlor: 0, chlorVTR: 0, dep: 25, doc: 341, water: 0, out: 0, neet: 13, unemp0: 9, youthUnemp: 17,
+    htn: 18, scd: 1500, chlor: 0, chlorVTR: 0, dep: 25, doc: 341, water: 0, out: 0, neet: 13, unemp0: 9, youthUnemp: 17,
     ipv: 1.0, cyc: 0, slr: 0, haz: 'H', mig: 'GLP,MTQ,REU',
     contexte: 'Les enfants nés en Hexagone de parents ultramarins : deux tiers des Antillais vivent en Île-de-France. Le pays est à 7 000 km, un billet d’avion coûte un mois de salaire.',
     villes: ['Paris', 'Créteil', 'Sarcelles', 'Évry', 'Bobigny', 'Lyon', 'Marseille', 'Toulouse'],
@@ -127,12 +127,15 @@ export const SOURCES = {
   hajjar2023: { t: 'Assemblée nationale, commission d’enquête sur le coût de la vie en outre-mer, rapport n° 1549 (J. Hajjar, G. Lenormand), juillet 2023', u: 'https://www.assemblee-nationale.fr/dyn/16/rapports/cecvom/l16b1549_rapport-enquete.pdf' },
   sucre: { t: 'Loi n° 2013-453 du 3 juin 2013 (loi Lurel) : teneur en sucre et dates limites alignées sur l’Hexagone ; Pourquoi Docteur, 30 mai 2016', u: 'https://www.pourquoidocteur.fr/Articles/Question-d-actu/15862-Aliments-sucres-en-Outre-Mer-On-nous-expliquait-que-nous-etions-addict-au-sucre' },
   dlc: { t: 'Assemblée nationale, question écrite n° 78428 (2015) sur les DLC prolongées outre-mer', u: 'https://www.assemblee-nationale.fr/dyn/14/questions/QANR5L14QE78428.pdf' },
+  htn: { t: 'Santé publique France, prévalence de l’hypertension déclarée dans les DROM, Baromètre 2021', u: 'https://www.santepubliquefrance.fr/regions-et-territoires/antilles/article/prevalence-de-lhypertension-arterielle-declaree-dans-les-departements-et-regions-doutre-mer-lenquete' },
+  scd: { t: 'Santé publique France / BEH 2012 : la drépanocytose dans les DROM (AFDPHE 2010)', u: 'https://www.santepubliquefrance.fr/regions-et-territoires/guyane/article/la-drepanocytose-dans-les-departements-francais-doutre-mer-antilles-guyane-la-reunion-mayotte' },
   climat: { t: 'Réseau Action Climat, Outre-mer et changement climatique (juin 2025)', u: 'https://www.maire-info.com/outre-mer/les-outre-mer-gravement-menaces-par-le-rechauffement-climatique-article-29759' },
 };
 
 // cs = structure de la population active par catégorie socioprofessionnelle, % (INSEE RP 2022 ; Mayotte estimée)
 // pub = part de l'emploi public dans l'emploi salarié, % (INSEE Flores 2024) ; empRate = taux d'emploi 15-64 ans ; unemp = chômage BIT 2024 ; halo = halo autour du chômage
 // DIA cs = natifs des DOM en Hexagone : 39 % d'ouvriers, femmes à 50 % dans le public (INSEE Première 1389)
+// htn = hypertension déclarée 18-85 ans, % (Baromètre SpF DROM 2021 ; Hexagone ≈ 18 % approx ; Mayotte approx) ; scd = 1 naissance drépanocytaire sur N (AFDPHE 2010, via SpF ; DIA ≈ enfants de parents antillais, approx)
 // wage = salaire médian net mensuel des salariés à temps plein (approx, INSEE DADS)
 // Champs marqués approx (à vérifier avant publication) : ppp, gi, mmr, urb, agr, net, ter, eys, sm, sf, wh, road, hiv,
 // unemp/youthUnemp (hors MTQ), ipv (indice relatif), cyc, b/pop de DIA, pov/dep de DIA, u5 (dérivé de im).

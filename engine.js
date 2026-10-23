@@ -151,7 +151,8 @@ export function causeWeights(c, a, sex, S) {
   if (S) {
     if (S.smoker) { w.can = (w.can || 5) * 1.6; w.copd = (w.copd || 2) * 2.5; w.ihd = (w.ihd || 3) * 1.4; }
     if (S.conds.dia) { w.dia = (w.dia || 3) * 3; w.kid = (w.kid || 2) * 2.5; w.ihd = (w.ihd || 3) * 1.5; }
-    if (S.conds.htn) { w.str = (w.str || 3) * 2; w.ihd = (w.ihd || 3) * 1.5; }
+    if (S.conds.htn) { w.str = (w.str || 3) * (S.conds.htn.treated ? 1.5 : 2.5); w.ihd = (w.ihd || 3) * 1.5; w.kid = (w.kid || 1) * 1.5; }
+    if (S.conds.scd) { w.scd = a < 40 ? 25 : 10; }
     if (S.alc) w.cir = (w.cir || 2) * 3;
     const J = JOBS[S.job]; if (J && J.risk) for (const k in J.risk) if (k !== 'chlor') w[k] = (w[k] || 1) * J.risk[k];
     if (S.flags.depress && a < 50) w.suic = (w.suic || 3) * 2;
@@ -279,6 +280,8 @@ export function newLife(opt = {}) {
   S.bornCity = S.city;
   // chlordécone : imprégnation dès l'enfance, proportionnelle au taux adulte (approx : enfants un peu moins)
   if (c.chlor && (c.id === 'GLP' || c.id === 'MTQ') && chance(c.chlor / 100 * 0.9)) S.flags.chlor = 1;
+  // drépanocytose : 1 naissance sur 227 (Guyane) à 1 sur 4 551 (Réunion) ; porteurs sains ~5 % dans les DROM
+  if (c.scd && chance(1 / c.scd)) { S.conds.scd = { treated: true, at: 0 }; S.flags.scd = 1; } else if (c.id !== 'REU' && chance(0.05)) S.flags.scdCarrier = 1;
   if (c.chlorVTR && S.flags.chlor && chance(c.chlorVTR / c.chlor)) S.flags.chlorHigh = 1;
   return S;
 }
@@ -392,7 +395,9 @@ export function ncdYear() {
   const k = (S.q <= 2 ? 1.4 : S.q >= 4 ? 0.7 : 1) * (S.focusW.sport || S.focusW.health ? 0.6 : 1) * (S.st.hl < 50 ? 1.3 : 1) * (S.sex === 'F' ? 1.15 : 1) * (S.flags.obese ? 1.8 : S.flags.sugar ? 1.15 : 1);
   if (S.focusW.health > 0.5) for (const k2 in S.conds) S.conds[k2].treated = true;
   if (!S.conds.dia && chance(base * k)) { S.conds.dia = { treated: chance(clamp(0.75 - (c.doc < 150 ? 0.3 : 0) - (S.q <= 2 ? 0.15 : 0), 0.2, 0.9)), at: a }; log(`Diagnostic : diabète de type 2.${S.conds.dia.treated ? ' Tu commences un traitement.' : ' Tu laisses traîner, le médecin est loin et le reste à charge pèse.'}`, 'bad', `${c.dia} % des adultes ${c.id === 'DIA' ? 'en Hexagone' : c.article} déclarent un diabète, contre 5,7 % en Hexagone (Santé publique France 2021)`); }
-  if (!S.conds.htn && a >= 40 && chance(0.012 * (S.q <= 2 ? 1.3 : 1) * (c.id === 'DIA' ? 0.8 : 1))) { S.conds.htn = { treated: chance(0.7), at: a }; log('Hypertension diagnostiquée lors d’un contrôle.', 'bad'); }
+  // hypertension : prévalence déclarée du territoire (31,5 % en Martinique, 20,8 % à La Réunion, ~18 % en Hexagone) répartie sur 35 ans ; femmes plus touchées dans les DROM ; sel, surpoids, stress
+  if (!S.conds.htn && a >= 35) { const base = (c.htn / 100) / 35; const k = (S.sex === 'F' && c.id !== 'DIA' ? 1.2 : 1) * (S.flags.obese ? 1.6 : 1) * (S.q <= 2 ? 1.2 : 1) * (S.focusW.work > 0.5 ? 1.2 : 1) * (S.focusW.sport || S.focusW.health ? 0.7 : 1);
+    if (chance(base * k)) { S.conds.htn = { treated: chance(0.8), at: a }; log(S.conds.htn.treated ? 'Hypertension diagnostiquée lors d’un contrôle. Traitement à vie.' : 'Hypertension diagnostiquée. Tu oublies souvent le traitement.', 'bad', c.id === 'DIA' ? null : `${String(c.htn).replace('.', ',')} % des adultes ${c.article} déclarent une hypertension, les femmes plus que les hommes (Santé publique France, Baromètre DROM 2021)`); } }
 }
 
 export function deathProb() {
@@ -405,7 +410,7 @@ export function deathProb() {
   const norm = [1, 2, 3, 4, 5].reduce((s, k) => s + Math.exp(-g * (k - 3)), 0) / 5;
   m *= Math.exp(-g * (qe - 3)) / norm;
   if (a >= 25) { const sp = (S.sex === 'F' ? c.sf : c.sm) / 100; m *= (S.smoker ? 1.7 : 1) / (1 + 0.7 * sp); }
-  for (const k in S.conds) m *= S.conds[k].treated ? 1.05 : 1.3;
+  for (const k in S.conds) m *= k === 'scd' ? (a < 5 ? 2.5 : a < 40 ? 1.8 : 1.4) : S.conds[k].treated ? 1.05 : 1.3;
   if (S.alc && a >= 18) m *= 1.5;
   if (S.flags.chlorHigh && a >= 45) m *= 1.08;
   if (a >= 25) { const alone = !S.fam.partner && !S.fam.kids.length && !S.fam.mom.alive; if (alone) m *= 1.2; if (S.st.so < 40) m *= 1.1; }
