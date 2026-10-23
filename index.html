@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
 <title>Né là-bas · Une vie en outre-mer, dans les vrais chiffres</title>
 <meta name="description" content="Simulation de vie gratuite : tu nais au hasard en Guadeloupe, Martinique, Guyane, à La Réunion, à Mayotte ou en Hexagone de parents ultramarins, et tu vis cette vie jusqu’au bout dans les statistiques réelles de l’INSEE et de Santé publique France.">
 <meta property="og:title" content="Né là-bas · Où serais-tu né ?">
@@ -188,6 +190,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
   <div class="opt"><label>Toi, tu es né·e où ? (facultatif, pour comparer à la fin)</label><select id="home"><option value="">Je ne dis pas</option><option value="GLP">Guadeloupe</option><option value="MTQ">Martinique</option><option value="GUF">Guyane</option><option value="REU">La Réunion</option><option value="MYT">Mayotte</option><option value="DIA">En Hexagone, de parents ultramarins</option><option value="HEX">En Hexagone, sans lien avec l’outre-mer</option></select></div>
   <button class="cta" id="born">Naître</button>
   <p class="small">Sans inscription. La mort, la maladie, les violences et le deuil arrivent ici aussi souvent que dans les statistiques, sans scène. Dès 15 ans. Si ça pèse : 3114 (écoute, 24h/24), 3919 (violences).</p>
+  <p class="small">Vie privée : pas de compte, pas de cookie, pas de mesure d’audience ; tes vies et tes réponses restent dans ton navigateur, rien n’est envoyé. Les polices sont chargées depuis Google Fonts.</p>
   <p class="small">Chiffres : INSEE, Santé publique France, INED, DREES, Fnors, SSMSI. <a href="#" id="srcLink">Voir les sources et les territoires</a> · <a href="#" id="newsLink">Nouveautés</a> · <a href="#" id="pastLink">Mes vies passées</a></p>
 </section>
 
