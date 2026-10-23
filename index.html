@@ -272,7 +272,7 @@ function renderTop() {
 }
 function renderId() {
   const c = E.TBY[S.born]; $('#nm').textContent = S.name;
-  const fam = []; if (S.fam.partner) fam.push((S.fam.married ? 'marié·e à ' : 'avec ') + S.fam.partner.name + (S.fam.partner.alive ? '' : ' (†)')); const kids = S.fam.kids.filter(k => k.alive).length; if (kids) fam.push(kids + (kids > 1 ? ' enfants' : ' enfant'));
+  const fam = []; if (S.fam.partner) fam.push((S.fam.married ? E.gender('marié·e', S.sex) + ' à ' : 'avec ') + S.fam.partner.name + (S.fam.partner.alive ? '' : ' (†)')); const kids = S.fam.kids.filter(k => k.alive).length; if (kids) fam.push(kids + (kids > 1 ? ' enfants' : ' enfant'));
   $('#sub').textContent = `${S.sex === 'F' ? 'Née' : 'Né'} ${c.article} · ${['famille très modeste', 'famille modeste', 'famille moyenne', 'famille aisée', 'famille très aisée'][S.q - 1]}${fam.length ? ' · ' + fam.join(', ') : ''}`;
   portrait($('#portrait'), S);
 }
@@ -293,7 +293,7 @@ function renderFiche() {
     <dt>Mère</dt><dd>${esc(m.name)} · ${m.alive ? m.age + ' ans · ' + J(m.job) : '† ' + m.age + ' ans'}</dd>
     <dt>Père</dt><dd>${d.absent ? 'absent' : esc(d.name) + ' · ' + (d.alive ? d.age + ' ans · ' + J(d.job) : '† ' + d.age + ' ans')}</dd>
     <dt>Frères et sœurs</dt><dd>${sibs}</dd>
-    ${S.fam.partner ? `<dt>${S.fam.married ? 'Conjoint·e' : 'Compagnon·ne'}</dt><dd>${esc(S.fam.partner.name)} · ${S.fam.partner.alive ? S.fam.partner.age + ' ans' : '†'}</dd>` : ''}
+    ${S.fam.partner ? `<dt>${E.gender(S.fam.married ? 'Conjoint·e' : 'Compagnon·ne', S.fam.partner.sex)}</dt><dd>${esc(S.fam.partner.name)} · ${S.fam.partner.alive ? S.fam.partner.age + ' ans' : '†'}</dd>` : ''}
     ${kids.length ? `<dt>Enfants</dt><dd>${kids.map(k => esc(k.name) + ' (' + k.age + ')' + (k.far ? ' · en Hexagone' : '')).join(', ')}</dd>` : ''}
   </dl>`;
 }
@@ -369,7 +369,7 @@ const hooks = {
   endYear() { E.endYear(hooks); if (S.phase === 'dead') showDeath(); },
   planYear() { E.planYear(EVENTS, DECS); renderAll(); saveCur(); },
   die() { E.die(); },
-  onParentDeath(w) { feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : 'Ton père meurt.', 'loss')); renderFiche(); },
+  onParentDeath(w) { feedItem(E.log(w === 'mom' ? 'Ta mère meurt.' : S.fam.dad.absent ? 'Tu apprends que ton père est mort. Tu ne l’as pas connu.' : 'Ton père meurt.', 'loss')); renderFiche(); },
   onFamily(items) { for (const it of items) feedItem(E.log(it.t, it.k, it.f)); renderFiche(); renderGauges(); },
   onPartnerDeath() { feedItem(E.log(`${S.fam.partner.name} meurt.`, 'loss')); },
 };
@@ -457,7 +457,7 @@ function showDeath() {
       <dt>Milieu d’origine</dt><dd>${esc(s.classe)}</dd>
       <dt>Études</dt><dd>${s.edu}</dd>
       <dt>Travail</dt><dd>${E.jobName(s.job, s.died || c)}</dd>
-      <dt>Famille</dt><dd>${s.married ? 'marié·e' : 'célibataire'}${s.kids ? `, ${s.kids} enfant${s.kids > 1 ? 's' : ''}` : ''}</dd>
+      <dt>Famille</dt><dd>${s.married ? E.gender('marié·e', s.sex) : s.widow ? E.gender('veuf·ve', s.sex) : 'célibataire'}${s.kids ? `, ${s.kids} enfant${s.kids > 1 ? 's' : ''}` : ''}</dd>
       ${s.mig ? `<dt>Départ</dt><dd>en Hexagone à ${S.migY} ans${s.died.id !== 'DIA' ? ', puis retour' : ''}${s.remit ? ` · ${Math.round(E.eurMois(E.TBY.DIA, s.remit) * 12).toLocaleString('fr')} € envoyés au pays` : ''}</dd>` : ''}
       ${s.chlor ? `<dt>Chlordécone</dt><dd>présent dans le sang${S.flags.chlorHigh ? ', au-dessus du seuil' : ''}</dd>` : ''}
       ${s.conds.length ? `<dt>Santé</dt><dd>${s.conds.map(k => ({ dia: 'diabète', htn: 'hypertension', can: 'cancer', kid: 'insuffisance rénale', scd: 'drépanocytose', endo: 'endométriose', fib: 'fibromes' })[k] || k).join(', ')}</dd>` : ''}
@@ -468,7 +468,7 @@ function showDeath() {
     ${(() => { const T = S.log.filter(l => l.k === 'loss' || /^Séparation|^Naissance de|^Mariage|^Tu pars|^Tu rentres|^Retraite à|^Arrêté·e|^Admis·e|^Tu achètes|^Diplôme|^Licence|^Bac obtenu|^Tu quittes l’école|^Tu te mets en couple|meurt\.$/.test(l.t)).slice(0, 16); return T.length ? `<div class="cert"><h3>Les tournants</h3><ul>${T.map(l => `<li><span style="color:var(--mut)">${l.a} ans —</span> ${esc(l.t.length > 110 ? l.t.slice(0, 108) + '…' : l.t)}</li>`).join('')}</ul></div>` : ''; })()}
     ${(S.decisions || []).length ? `<div class="cert"><h3>Les choix de cette vie</h3><ul>${S.decisions.map(d => `<li><span style="color:var(--mut)">${d.a} ans —</span> ${esc(d.title)} : ${esc(d.t)}${d.auto ? ' <span style="color:var(--mut)">(auto)</span>' : ''}</li>`).join('')}</ul></div>` : ''}
     ${refl ? `<div class="cert"><h3>Ce que tu as écrit en route</h3><ul>${refl}</ul></div>` : ''}
-    <div class="cert"><h3>${home ? `Si ${s.sex === 'F' ? 'elle' : 'il'} était né·e là où tu es né·e` : 'Et en Hexagone, sans lien avec l’outre-mer'}</h3><div class="cmp">
+    <div class="cert"><h3>${home ? `Si ${s.sex === 'F' ? 'elle' : 'il'} était ${s.sex === 'F' ? 'née' : 'né'} là où tu es né·e` : 'Et en Hexagone, sans lien avec l’outre-mer'}</h3><div class="cmp">
       <div>${esc(c.nom === 'Hexagone (diaspora)' ? 'Diaspora' : c.nom)}<b>${c.le} ans</b>espérance de vie<br>${c.pov} % de pauvreté<br>${c.dia} % de diabète</div>
       <div>${home ? esc(home.nom === 'Hexagone (diaspora)' ? 'Diaspora' : home.nom) : 'Hexagone'}<b>${home ? home.le : HEXAGONE.le} ans</b>espérance de vie<br>${home ? home.pov : HEXAGONE.pov} % de pauvreté<br>${home ? home.dia : HEXAGONE.dia} % de diabète</div>
     </div></div>

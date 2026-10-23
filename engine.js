@@ -113,7 +113,7 @@ export const JOB_LOCAL = {
   civil: { GUF: 'fonctionnaire (collectivité, préfecture, CSG)', MYT: 'fonctionnaire (collectivité, rectorat)' },
 };
 // accorde une forme inclusive « employé·e / chauffeur·se / ouvrier·ère / administratif·ve / agriculteur·rice » au sexe connu
-export function gender(label, sex) { if (!sex || !label || !label.includes('·')) return label; return label.replace(/([\p{L}-]+)·([\p{L}]+)/gu, (m, base, suf) => { if (sex === 'M') return base; if (suf === 'e' || suf === 'ne' || suf === 'le' || suf === 'te') return base + suf; if (suf === 'ère') return base.replace(/er$/, 'ère'); if (suf === 'se') return base.replace(/eur$/, 'euse'); if (suf === 've') return base.replace(/f$/, 've'); if (suf === 'rice') return base.replace(/eur$/, 'rice'); if (suf === 'euse') return base.replace(/eur$/, 'euse'); if (suf === 'ienne') return base.replace(/ien$/, 'ienne'); return base + suf; }); }
+export function gender(label, sex) { if (!sex || !label || !label.includes('·')) return label; return label.replace(/([\p{L}-]+)·([\p{L}]+)/gu, (m, base, suf) => { if (suf === 'ta') return sex === 'M' ? base : 'ta'; if (base === 'Compagnon' && suf === 'ne') return sex === 'M' ? base : 'Compagne'; if (sex === 'M') return base; if (suf === 'se' && /x$/.test(base)) return base.slice(0, -1) + 'se'; if (suf === 'e' || suf === 'ne' || suf === 'le' || suf === 'te') return base + suf; if (suf === 'ère') return base.replace(/er$/, 'ère'); if (suf === 'se') return base.replace(/eur$/, 'euse'); if (suf === 've') return base.replace(/f$/, 've'); if (suf === 'rice') return base.replace(/eur$/, 'rice'); if (suf === 'euse') return base.replace(/eur$/, 'euse'); if (suf === 'ienne') return base.replace(/ien$/, 'ienne'); return base + suf; }); }
 export const jobName = (id, c, sex) => gender((JOB_LOCAL[id] && c && JOB_LOCAL[id][c.id]) || (JOBS[id] ? JOBS[id].n : '—'), sex);
 export const WORKING = j => j && !['student', 'seeking', 'homemaker', 'retired'].includes(j);
 // catégorie socioprofessionnelle INSEE de chaque métier + secteur public
@@ -277,7 +277,7 @@ export function parentJob(c, q, sex) {
 // revenu d'un parent : position dans la fourchette de son métier, tirée selon le quintile
 export function jobPct(job, q) { const J = JOBS[job]; if (!J || !WORKING(job)) return 0; return clamp(J.lo + (J.hi - J.lo) * clamp((q - 1) / 4 + (rnd() - 0.5) * 0.3, 0.05, 0.95), J.lo, J.hi); }
 export function parentIncome(c, P) { if (!P || !P.alive || P.absent || !WORKING(P.job)) return 0; if (P.pct == null) P.pct = jobPct(P.job, S.q); let inc = incomeAt(c, P.pct); if (JOB_PUB[P.job] && c.id !== 'DIA') inc *= 1 + (JOB_PUB[P.job] >= 0.8 ? (c.id === 'REU' ? 0.53 : 0.4) : 0.2); return Math.max(inc, incomeAt(c, 0.5) * 0.62); }
-export function famIncomeCalc(c) { const mom = parentIncome(c, S.fam.mom), dad = parentIncome(c, S.fam.dad); const n = (S.fam.mom.alive ? 1 : 0) + (S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0); let floor = incomeAt(c, 0.5) * (n ? 0.4 : 0.3); if (S.elite) floor = Math.max(floor, incomeAt(c, 0.85)); /* patrimoine, loyers, réseau : une famille aisée ne tombe pas au RSA du jour au lendemain */ const v = Math.max(mom + dad, floor); S.famIncome = S.famIncome ? S.famIncome * 0.6 + v * 0.4 : v; return S.famIncome; } // lissé : une baisse se fait sur deux ou trois ans
+export function famIncomeCalc(c) { const mom = parentIncome(c, S.fam.mom), dad = parentIncome(c, S.fam.dad); const n = (S.fam.mom.alive ? 1 : 0) + (S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0); let floor = incomeAt(c, 0.5) * (n ? 0.4 : 0.3); if (S.elite) floor = Math.max(floor, incomeAt(c, 0.85)); /* patrimoine, loyers, réseau : une famille aisée ne tombe pas au RSA du jour au lendemain */ const v = Math.max(mom + dad, floor); S.famIncome = S.famIncome && v < S.famIncome ? S.famIncome * 0.6 + v * 0.4 : v; return S.famIncome; } // lissé : une baisse se fait sur deux ou trois ans
 // carnation (0 = très foncée … 6 = blanche), tirée des racines ; sert aux avatars et aux biais de colorisme
 export const SKINS = ['#4A2E1F', '#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#D4A98A', '#EFD3BF'];
 export function skinFromRoots(roots, elite) {
@@ -338,7 +338,7 @@ export function newLife(opt = {}) {
     stats: { maxIncome: 0, decisions: 0, kidsBorn: 0, tripsHome: 0, remitTotal: 0 },
     facts: [],
   };
-  S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city); S.flags.skin = skinFromRoots(roots, elite);
+  S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city); if (c.id === 'DIA') S.flags.hexRegion = Object.keys(HEX).find(r => HEX[r].villes.includes(S.city)) || 'idf'; S.flags.skin = skinFromRoots(roots, elite);
   S.home = { with: 'parents', since: 0 }; // foyer explicite (modèle 1in8b withParents/homeOthers) : parents | alone | coloc | partner | own | family | ehpad
   S.famIncome = 0; famIncomeCalc(c); S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
   if (!S.elite) S.q = clamp(Math.ceil(S.famPct * 5), 1, 5); // le quintile affiché suit le revenu réel des parents
@@ -397,7 +397,8 @@ export function fireEvent(EVENTS, id) { const ev = EVENTS.find(x => x.id === id)
 // variantes : évite de répéter la même phrase d'un événement à variantes
 export function varied(key, arr) { const seen = S.flags['var_' + key] || []; const fresh = arr.filter(x => !seen.includes(x)); const pickFrom = fresh.length ? fresh : arr; const v = pickFrom[Math.floor(rnd() * pickFrom.length)]; S.flags['var_' + key] = fresh.length ? [...seen, v] : [v]; return v; }
 export function eff(e) { for (const k in e) if (S.st[k] != null) S.st[k] = clamp(S.st[k] + e[k], 0, 100); }
-export function log(t, k = 'ev', f) { const item = { a: S.age, t, k, f }; S.log.push(item); if (f) S.facts.push({ a: S.age, f }); return item; }
+export function resolveText(t, sex) { if (!t) return t; t = gender(t, sex || S.sex); t = t.replace(/« papa » ou « manman »/g, (sex || S.sex) === 'F' ? '« manman »' : '« papa »'); if ((sex || S.sex) === 'F') t = t.replace(/\bTrésorier\b/g, 'Trésorière'); return t.replace(/\b(de|De) ([AEIOUÉÈÊÀÂÎÔÛ][\p{L}-]+|achards|ylang)/gu, (m, de, w) => (de === 'De' ? 'D’' : 'd’') + w); }
+export function log(t, k = 'ev', f) { t = resolveText(t); f = resolveText(f); const item = { a: S.age, t, k, f }; S.log.push(item); if (f) S.facts.push({ a: S.age, f }); return item; }
 
 // tick : dtSec de temps réel
 export function tick(dtSec, hooks) {
@@ -557,8 +558,8 @@ function parentYear(c, a) {
     const nm = who === 'mom' ? 'Ta mère' : 'Ton père'; const nmL = who === 'mom' ? 'ta mère' : 'ton père';
     const pa = P.age; P.conds = P.conds || {};
     // emploi : perte selon le territoire, retour selon le taux d'emploi
-    if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && P.job !== 'politician' && !S.elite && chance(0.025 * (c.unemp / 10))) { P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
-    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); P.pct = jobPct(P.job, Math.min(S.q, 3)); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${jobName(P.job, c, who === 'mom' ? 'F' : 'M')}.`, k: 'good' }); }
+    if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && P.job !== 'politician' && !S.elite && chance(0.025 * (c.unemp / 10))) { P.prevJob = P.job; P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
+    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { const qq = S.q >= 4 ? S.q : Math.min(S.q, 3); P.job = P.prevJob && chance(0.6) ? P.prevJob : parentJob(c, qq, who === 'mom' ? 'F' : 'M'); P.pct = jobPct(P.job, qq); if (P.job === 'seeking' || P.job === 'homemaker' || (JOB_PUB[P.job] >= 0.8 && P.job !== P.prevJob) || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${jobName(P.job, c, who === 'mom' ? 'F' : 'M')}.`, k: 'good' }); }
     // retraite
     if (pa === 64 && WORKING(P.job)) { P.job = 'retired'; out.push({ t: `${nm} prend sa retraite.` }); }
     // maladies : mêmes prédispositions que toi, selon le territoire ; l'hérédité te suit
@@ -572,7 +573,7 @@ function parentYear(c, a) {
   // séparation des parents
   if (kidHome && F.mom.alive && F.dad.alive && !F.dad.absent && !F.sep && a >= 2 && chance(0.03)) { F.sep = 1; F.dad.absent = true; eff({ h: -6, so: -3 }); S.famPct = clamp(S.famPct - 0.15, 0.03, 0.97); out.push({ t: 'Tes parents se séparent. Ton père part. Il passe le dimanche, puis moins.', k: 'bad', f: c.id === 'DIA' ? null : `Familles monoparentales ${c.article} : ${({ GLP: '42 %', MTQ: '40 %', GUF: '50 %', REU: '33 %', MYT: '30 %' })[c.id] || 'plus d’un tiers'} des familles avec enfants, une mère seule le plus souvent (INSEE, approx)` }); }
   // vieillesse et dépendance : tu deviens aidant·e
-  for (const who of ['mom', 'dad']) { const P = F[who]; if (!P.alive || (who === 'dad' && P.absent)) continue; if (P.age >= 80 && !P.dep && chance(0.08)) { P.dep = 1; S.flags.carer = 1; eff({ h: -3, hl: -2, so: 2 }); out.push({ t: `${who === 'mom' ? 'Ta mère' : 'Ton père'} ne peut plus rester seul·e. ${S.cur !== S.born && S.born !== 'DIA' ? 'Tu es à 7 000 km. Ta sœur gère, tu paies.' : 'Tu passes tous les jours.'}`, k: 'bad', f: c.id === 'DIA' ? null : `Les places en EHPAD sont deux fois plus rares dans les DROM qu’en Hexagone ; la prise en charge des aînés repose sur la famille (DREES, approx)` }); } }
+  for (const who of ['mom', 'dad']) { const P = F[who]; if (!P.alive || (who === 'dad' && P.absent)) continue; if (P.age >= 80 && !P.dep && chance(0.08)) { P.dep = 1; if (S.cur === S.born || S.born === 'DIA') S.flags.carer = 1; eff({ h: -3, hl: -2, so: 2 }); out.push({ t: `${who === 'mom' ? 'Ta mère' : 'Ton père'} ne peut plus rester seul${who === 'mom' ? 'e' : ''}. ${S.cur !== S.born && S.born !== 'DIA' ? 'Tu es à 7 000 km. La famille gère, tu paies.' : S.flags.carer ? 'Tu es là, déjà.' : 'Tu passes tous les jours.'}`, k: 'bad', f: c.id === 'DIA' ? null : `Les places en EHPAD sont deux fois plus rares dans les DROM qu’en Hexagone ; la prise en charge des aînés repose sur la famille (DREES, approx)` }); } }
   return out;
 }
 export function die(forced, label) {
@@ -583,7 +584,7 @@ export function die(forced, label) {
 }
 
 // ---------- décisions ----------
-export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.t && (S.away || !d.t.includes(S.cur))) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
+export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.t && (S.away || !d.t.includes(S.cur))) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; for (const ch of choices) { ch.t = resolveText(ch.t); if (ch.sub) ch.sub = resolveText(ch.sub); } S.pending = { id, title: resolveText(d.title()), text: resolveText(d.text()), choices }; }
 export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; S.flags.lastDec = { id: p.id, t: ch.t, a: S.age, title: p.title }; (S.decisions = S.decisions || []).push({ id: p.id, t: ch.t, a: S.age, title: p.title, auto: !!S.auto }); const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
 
 // ---------- résumé ----------
@@ -594,5 +595,5 @@ export function summary() {
   const happiest = years.length ? years.reduce((b, y) => y.h > b.h ? y : b, years[0]) : null;
   const edu = (S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['sans diplôme', 'collège', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.edu]) || '';
   const work = {}; for (const y of years) if (y.inc > 0) work[y.cur] = (work[y.cur] || 0) + 1;
-  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.mainJob || S.job, married: S.fam.married, kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
+  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.lastJob || S.flags.mainJob || S.job, married: !!(S.fam.married && S.fam.partner && S.fam.partner.alive), widow: !!(S.fam.partner && !S.fam.partner.alive), kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
 }
