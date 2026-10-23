@@ -288,7 +288,7 @@ function renderFiche() {
     <dt>Racines</dt><dd>${esc(S.roots)}${S.born === 'DIA' ? ` · famille ${esc(o.gentF)}` : ''}</dd>
     <dt>Religion</dt><dd>${RELN[S.rel]}</dd>
     <dt>Milieu</dt><dd>${esc(S.classe)} · ${['les 20 % les plus modestes', 'les 20 % modestes', 'les 20 % du milieu', 'les 20 % aisés', 'les 20 % les plus aisés'][S.q - 1]}</dd>
-    <dt>Études</dt><dd>${['pas encore à l’école', 'école', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.school ? Math.max(0, S.edu) : S.edu] || '—'}${S.school ? ' (en cours)' : ''}</dd>
+    <dt>Études</dt><dd>${(S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['pas encore à l’école', 'école', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.school ? Math.max(0, S.edu) : S.edu]) || '—'}${S.school ? ' (en cours)' : ''}</dd>
   </dl><h4>Famille</h4><dl>
     <dt>Mère</dt><dd>${esc(m.name)} · ${m.alive ? m.age + ' ans · ' + J(m.job) : '† ' + m.age + ' ans'}</dd>
     <dt>Père</dt><dd>${d.absent ? 'absent' : esc(d.name) + ' · ' + (d.alive ? d.age + ' ans · ' + J(d.job) : '† ' + d.age + ' ans')}</dd>
@@ -438,6 +438,8 @@ function showActe() {
 }
 
 // ---------- mort ----------
+// « mort de cancer », « morte d’un infarctus », « mort d’une autre maladie »
+function deCause(c) { c = String(c); if (/^autre maladie/.test(c)) return 'd’une autre maladie'; if (/^(accident|infarctus|AVC|homicide|insuffisance|infection)/i.test(c)) return (/^(accident|infarctus|insuffisance|infection)/i.test(c) ? 'd’un ' : 'd’un ') + esc(c); if (/^[aeiouyéèh]/i.test(c)) return 'd’' + esc(c); return 'de ' + esc(c); }
 function showDeath() {
   cancelAnimationFrame(raf); raf = null; if (SCENE) SCENE.stop(); save(true); track('death', { age: S.deathAt.age, t: S.born });
   const s = E.summary(); const c = s.born; const cur = s.died;
@@ -448,7 +450,7 @@ function showDeath() {
   $('#dead').innerHTML = `
     <h1>${esc(s.name)}</h1>
     <div class="age">${s.age} <span style="font-size:28px">ans</span></div>
-    <div class="cause">${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + esc(s.cause) : ''} ${esc(E.aVille(s.city))}${s.died.id === 'DIA' ? ', en Hexagone' : ', ' + s.died.nom}.</div>
+    <div class="cause">${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? deCause(s.cause) : ''} ${esc(E.aVille(s.city))}${s.died.id === 'DIA' ? ', en Hexagone' : ', ' + s.died.nom}.</div>
     <div class="cert"><h3>Acte de décès</h3><dl>
       <dt>Naissance</dt><dd>${esc(s.bornCity)}, ${esc(c.nom === 'Hexagone (diaspora)' ? 'Hexagone, famille ' + s.origin.gentF : c.nom)}</dd>
       <dt>Racines</dt><dd>${esc(s.roots)} · ${esc(s.rel)}</dd>
@@ -463,6 +465,7 @@ function showDeath() {
     </dl></div>
     <div class="cert"><h3>Une vie en courbes</h3><svg class="chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="#F2B33D" stroke-width="2" points="${pts('h')}"/><polyline fill="none" stroke="#6FBF8A" stroke-width="2" points="${pts('hl')}"/><polyline fill="none" stroke="#7FA39C" stroke-width="1.5" stroke-dasharray="3 3" points="${pts('so')}"/></svg><div class="small"><span style="color:#F2B33D">— bonheur</span> &nbsp; <span style="color:#6FBF8A">— santé</span> &nbsp; <span style="color:#7FA39C">- - liens</span></div></div>
     <div class="cert"><h3>Ce que cette vie a traversé</h3><ul>${facts.map(f => `<li>${esc(f.f)}</li>`).join('') || '<li>Une vie sans histoire.</li>'}</ul></div>
+    ${(() => { const T = S.log.filter(l => l.k === 'loss' || /^Séparation|^Naissance de|^Mariage|^Tu pars|^Tu rentres|^Retraite à|^Arrêté·e|^Admis·e|^Tu achètes|^Diplôme|^Licence|^Bac obtenu|^Tu quittes l’école|^Tu te mets en couple|meurt\.$/.test(l.t)).slice(0, 16); return T.length ? `<div class="cert"><h3>Les tournants</h3><ul>${T.map(l => `<li><span style="color:var(--mut)">${l.a} ans —</span> ${esc(l.t.length > 110 ? l.t.slice(0, 108) + '…' : l.t)}</li>`).join('')}</ul></div>` : ''; })()}
     ${(S.decisions || []).length ? `<div class="cert"><h3>Les choix de cette vie</h3><ul>${S.decisions.map(d => `<li><span style="color:var(--mut)">${d.a} ans —</span> ${esc(d.title)} : ${esc(d.t)}${d.auto ? ' <span style="color:var(--mut)">(auto)</span>' : ''}</li>`).join('')}</ul></div>` : ''}
     ${refl ? `<div class="cert"><h3>Ce que tu as écrit en route</h3><ul>${refl}</ul></div>` : ''}
     <div class="cert"><h3>${home ? `Si ${s.sex === 'F' ? 'elle' : 'il'} était né·e là où tu es né·e` : 'Et en Hexagone, sans lien avec l’outre-mer'}</h3><div class="cmp">
@@ -487,7 +490,7 @@ async function shareCard(s) {
   x.fillStyle = '#EAF2EE'; x.font = '300 88px Fraunces'; wrap(x, s.name, 80, 300, 920, 96);
   x.font = '300 300px Fraunces'; x.fillStyle = '#F2B33D'; x.fillText(String(s.age), 80, 720); x.font = '300 64px Fraunces'; x.fillStyle = '#EAF2EE'; x.fillText('ans', 80 + x.measureText(String(s.age)).width * 4.2, 720);
   x.font = '400 40px "Instrument Sans"'; x.fillStyle = '#B9CFC9';
-  let y = 820; const lines = [`${s.sex === 'F' ? 'Née' : 'Né'} à ${s.bornCity}, ${s.born.nom === 'Hexagone (diaspora)' ? 'en Hexagone de parents ultramarins' : s.born.nom}`, `${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + s.cause : ''} ${E.aVille(s.city)}`, `${s.edu} · ${E.jobName(s.job, s.died)}`, s.married || s.kids ? `${s.married ? 'marié·e' : ''}${s.kids ? (s.married ? ', ' : '') + s.kids + ' enfant' + (s.kids > 1 ? 's' : '') : ''}` : 'sans famille à soi'];
+  let y = 820; const lines = [`${s.sex === 'F' ? 'Née' : 'Né'} à ${s.bornCity}, ${s.born.nom === 'Hexagone (diaspora)' ? 'en Hexagone de parents ultramarins' : s.born.nom}`, `${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? deCause(s.cause) : ''} ${E.aVille(s.city)}`, `${s.edu} · ${E.jobName(s.job, s.died)}`, s.married || s.kids ? `${s.married ? 'marié·e' : ''}${s.kids ? (s.married ? ', ' : '') + s.kids + ' enfant' + (s.kids > 1 ? 's' : '') : ''}` : 'sans famille à soi'];
   for (const l of lines) { y = wrap(x, l, 80, y, 920, 50) + 14; }
   y += 40; x.fillStyle = '#7FA39C'; x.font = '400 34px "Instrument Sans"';
   for (const f of [...new Map(s.facts.map(f => [f.f, f])).values()].slice(0, 3)) { x.fillStyle = '#7FA39C'; x.fillRect(80, y - 30, 4, 40); y = wrap(x, f.f, 110, y, 890, 42) + 30; }
