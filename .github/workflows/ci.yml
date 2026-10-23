@@ -7,22 +7,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.49.1-noble   # Chromium et Node déjà installés
     permissions: { contents: read, issues: write }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
       - name: Syntaxe
         run: npm run check
       - name: Linter de récits (300 vies, 30 règles de cohérence)
         run: npm run lint
       - name: Calibrage statistique (800 vies)
         run: npm run calib
-      - name: Installer Chromium
-        timeout-minutes: 8
-        run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
+      - name: Dépendances
+        timeout-minutes: 5
+        run: npm install --no-audit --no-fund
       - name: Test navigateur
         timeout-minutes: 6
         env: { GH_TOKEN: "${{ github.token }}" }
