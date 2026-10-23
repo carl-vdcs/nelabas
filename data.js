@@ -118,6 +118,12 @@ export const SOURCES = {
   myt_emploi: { t: 'INSEE, Un emploi pour trois adultes, Mayotte 2009-2018', u: 'https://www.insee.fr/fr/statistiques/4210651' },
   chomage2024: { t: 'INSEE via Outremers360, chômage T4 2024 par DROM', u: 'https://outremers360.com/bassin-atlantique-appli/economie-la-situation-de-lemploi-en-guadeloupe-guyane-martinique-et-a-la-reunion-insee' },
   ipv: { t: 'INED, enquête Virage DOM 2018', u: 'https://www.ined.fr/fichier/s_rubrique/28966/cp_virage_dom_tom_mars_2019_vf.fr.pdf' },
+  beke_pop: { t: 'AP / International Herald Tribune, 13 fév. 2009 : ~3 000 békés en Martinique, ~2 000 en Guadeloupe', u: 'https://en.wikipedia.org/wiki/B%C3%A9k%C3%A9' },
+  beke_eco: { t: 'Le Monde (J.-M. Hauteville), 2 nov. 2024 : ~55 % des terres agricoles, 4 groupes = 80 % des surfaces de vente', u: 'https://www.madinin-art.net/vie-chere-en-martinique-tensions-autour-de-la-grande-distribution-et-du-pouvoir-economique-des-bekes/' },
+  adlc2019: { t: 'Autorité de la concurrence, avis 19-A-12 du 4 juillet 2019 sur la distribution en outre-mer', u: 'https://www.autoritedelaconcurrence.fr/fr/print/pdf/node/6230' },
+  canal2009: { t: 'AP, 16 déc. 2010 : condamnation d’Alain Huygues-Despointes (documentaire Canal+ 2009)', u: 'https://thegrio.com/2010/12/16/martinique-man-convicted-of-making-racist-remarks/' },
+  indemnite1849: { t: 'CNRS, projet Repairs : base des indemnités versées aux propriétaires d’esclaves (1849)', u: 'https://esclavage-indemnites.fr/public/' },
+  nonlieu2023: { t: 'Maire-info, 6 janv. 2023 : non-lieu chlordécone du tribunal judiciaire de Paris', u: 'https://www.maire-info.com/sante-publique/chlordecone-pour-la-justice-un-scandale-sanitaire-...-mais-pas-de-coupable-article-27065' },
   climat: { t: 'Réseau Action Climat, Outre-mer et changement climatique (juin 2025)', u: 'https://www.maire-info.com/outre-mer/les-outre-mer-gravement-menaces-par-le-rechauffement-climatique-article-29759' },
 };
 
