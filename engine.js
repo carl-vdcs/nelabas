@@ -364,6 +364,7 @@ export function ncdYear() {
   // diabète : prévalence cible c.dia à 60 ans ; risque annuel calibré dessus ; obésité/revenu/activité modulent
   const base = (c.dia / 100) / 30; // ~ sur 30 ans d'exposition
   const k = (S.q <= 2 ? 1.4 : S.q >= 4 ? 0.7 : 1) * (S.focusW.sport || S.focusW.health ? 0.6 : 1) * (S.st.hl < 50 ? 1.3 : 1) * (S.sex === 'F' ? 1.15 : 1);
+  if (S.focusW.health > 0.5) for (const k2 in S.conds) S.conds[k2].treated = true;
   if (!S.conds.dia && chance(base * k)) { S.conds.dia = { treated: chance(clamp(0.75 - (c.doc < 150 ? 0.3 : 0) - (S.q <= 2 ? 0.15 : 0), 0.2, 0.9)), at: a }; log(`Diagnostic : diabète de type 2.${S.conds.dia.treated ? ' Tu commences un traitement.' : ' Tu laisses traîner, le médecin est loin et le reste à charge pèse.'}`, 'bad', `${c.dia} % des adultes ${c.id === 'DIA' ? 'en Hexagone' : c.article} déclarent un diabète, contre 5,7 % en Hexagone (Santé publique France 2021)`); }
   if (!S.conds.htn && a >= 40 && chance(0.012 * (S.q <= 2 ? 1.3 : 1) * (c.id === 'DIA' ? 0.8 : 1))) { S.conds.htn = { treated: chance(0.7), at: a }; log('Hypertension diagnostiquée lors d’un contrôle.', 'bad'); }
 }
