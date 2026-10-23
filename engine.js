@@ -350,13 +350,26 @@ export function finances() {
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
-  S.famIncome = Math.max(incomeAt(c, 0.5) * 0.45, incomeAt(c, S.famPct) * ((S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0.55) + (S.fam.mom.alive ? 0 : -0.3))); // plancher ≈ RSA + prestations
-  const priceK = 1 + (c.price || 0) / 100 * 0.35; // part alimentaire ~35 % du budget des ménages modestes
-  const spend = S.income * clamp(0.9 - (S.pct - 0.5) * 0.3, 0.55, 1.05) * priceK;
-  const remit = S.focusW.remit ? S.income * 0.1 : 0; S.stats.remitTotal += remit;
-  if (a >= 18) S.money += S.income - spend - remit;
-  if (S.money < 0) { S.debt += -S.money * 0.2; S.money = Math.max(S.money, -S.income * 0.5); }
-  if (S.debt > 0 && S.money > 0) { const pay = Math.min(S.debt, S.money * 0.3); S.debt -= pay; S.money -= pay; }
+  S.famIncome = Math.max(incomeAt(c, 0.5) * 0.45, incomeAt(c, S.famPct) * ((S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0.55) + (S.fam.mom.alive ? 0 : -0.3)));
+  if (a < 18) return;
+  // ménage : revenu du conjoint (≈ 70 % du tien s'il travaille), enfants à charge
+  const ptInc = S.fam.partner && S.fam.partner.alive && chance(0.65) ? S.income * 0.7 : 0;
+  const hh = S.income + ptInc;
+  const kids = S.fam.kids.filter(k => k.alive && k.age < 18 && !k.far).length;
+  // taux d'épargne : ~0 pour les bas revenus, jusqu'à 25 % en haut ; la vie chère rogne l'épargne mais ne crée pas de dette structurelle
+  const saveRate = clamp(0.02 + (S.pct - 0.3) * 0.35 - kids * 0.03 - (c.price || 0) / 100 * 0.12 + (S.focusW.work || 0) * 0.03 - (S.focusW.hobby || 0) * 0.02, 0, 0.3); // pas de déficit structurel : la pauvreté, c'est zéro épargne, pas une dette infinie
+  let flow = hh * saveRate;
+  // crédit immobilier : remboursé sur 25 ans dans les dépenses
+  if (S.mortgage && S.mortgage.left > 0) { const pay = Math.min(S.mortgage.left, S.mortgage.annual); S.mortgage.left -= pay; S.debt = Math.max(0, S.debt - pay); flow -= pay * 0.6; } // 40 % du crédit remplace un loyer
+  // intérêts sur le découvert / crédit conso
+  // crédit conso / découvert : 4 % d'intérêts, remboursé à hauteur de 6 % du revenu du ménage chaque année (prélevé sur les dépenses)
+  let conso = Math.max(0, S.debt - (S.mortgage ? S.mortgage.left : 0));
+  if (conso > 0) { conso *= 1.04; const pay = Math.min(conso, hh * 0.06); conso -= pay; S.debt = conso + (S.mortgage ? S.mortgage.left : 0); }
+  if (S.houseVal) S.houseVal *= 1.01;
+  S.money += flow;
+  if (S.money < 0) { S.debt += -S.money; S.money = 0; }
+  else if (conso > 0) { const pay = Math.min(conso, S.money * 0.6); S.debt -= pay; S.money -= pay; }
+  S.debt = Math.min(S.debt, hh * 1.5 + (S.mortgage ? S.mortgage.left : 0)); // au-delà, c'est la famille qui dépanne, pas la banque
 }
 
 export function ncdYear() {
@@ -413,7 +426,7 @@ export function endYear(hooks) {
   for (const k of S.fam.kids) if (k.alive) { k.age++; }
   // retraite
   if (!S.retired && a >= (S.flags.retireAt || 64) && WORKING(S.job)) { S.retired = true; S.pension = S.income * clamp(0.4 + S.jobY / 100, 0.35, 0.75); S.job = 'retired'; log(`Tu prends ta retraite${S.pension < incomeAt(c, 0.25) ? ', avec une petite pension' : ''}.`); }
-  S.years.push({ a, h: Math.round(st.h), hl: Math.round(st.hl), so: Math.round(st.so), sm: Math.round(st.sm), nw: Math.round(S.money - S.debt), inc: Math.round(S.income), cur: S.cur });
+  S.years.push({ a, h: Math.round(st.h), hl: Math.round(st.hl), so: Math.round(st.so), sm: Math.round(st.sm), nw: Math.round(S.money + (S.houseVal || 0) - S.debt), inc: Math.round(S.income), cur: S.cur });
   // mort
   if (chance(deathProb())) { hooks.die(); return; }
   S.age++; S.t = 0; hooks.planYear();
@@ -431,6 +444,7 @@ export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); 
 export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; S.flags.lastDec = { id: p.id, t: ch.t, a: S.age, title: p.title }; (S.decisions = S.decisions || []).push({ id: p.id, t: ch.t, a: S.age, title: p.title, auto: !!S.auto }); const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
 
 // ---------- résumé ----------
+export const netWorth = () => S.money + (S.houseVal || 0) - S.debt;
 export function summary() {
   const c = TBY[S.born], cur = TBY[S.cur];
   const years = S.years;
