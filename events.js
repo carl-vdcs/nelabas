@@ -1,7 +1,7 @@
 // Né là-bas — événements, décisions, pauses.
 // Format : { id, a:[min,max], t:['GLP',...] (territoires, optionnel), c:()=>cond, w:poids, once, gap, run:()=>texte|{t,k,f} }
 // k : 'ev' neutre, 'good', 'bad', 'loss' (deuil). f : fait sourcé affiché sous la ligne.
-import { S, C, TBY, eff, log, chance, pick, ri, rnd, clamp, incomeAt, JOBS, WORKING, lifeTable, makeName, die, aVille, jobWeight, wpick, JOB_PUB, varied, retire as E_retire, JOB_NEXT, JOB_CS, CS_RANK } from './engine.js';
+import { S, C, TBY, eff, log, chance, pick, ri, rnd, clamp, incomeAt, JOBS, WORKING, lifeTable, makeName, die, aVille, jobWeight, wpick, JOB_PUB, varied, retire as E_retire, JOB_NEXT, JOB_CS, CS_RANK, jobName } from './engine.js';
 
 const fem = () => S.sex === 'F';
 const sx = (m, f) => fem() ? f : m;
@@ -29,7 +29,7 @@ function meet() {
   const o = isDia() && chance(0.5) ? pick(['antilles', 'reunion', 'guyane']) : TBY[orig()].nm;
   const name = makeName(o, sx('F', 'M')).split(' ')[0]; const age = S.age + ri(-3, 4);
   const pool = ['shop', 'nurse', 'clerk', 'teacher', 'driver', 'construct', 'civil', 'hotel', 'tech', 'informal', 'student'].filter(j => !(sx('F', 'M') === 'M' && j === 'nurse'));
-  const jobId = age < 23 && chance(0.5) ? 'student' : pick(pool); const job = jobId === 'student' ? 'étudiant·e' : JOBS[jobId].n;
+  const jobId = age < 23 && chance(0.5) ? 'student' : pick(pool); const job = jobId === 'student' ? 'étudiant·e' : jobName(jobId, C());
   const where = pick(isDia() ? ['Rencontré·e à une soirée antillaise, à la fac, par une cousine.', 'Un collègue de l’hôpital, un ami d’ami.', 'Sur une appli. Vous avez ri des mêmes choses.'] : ['Rencontré·e au carnaval, chez des amis, à la plage.', 'Un·e ami·e d’enfance, revu·e par hasard au marché.', 'Sur une appli. Tout le monde se connaît, ici.']);
   S.flags.meet = { at: S.age, name, age, jobId, job, where }; return S.flags.meet;
 }
@@ -56,7 +56,7 @@ function unemp() { const c = C(); return (S.age < 30 ? c.youthUnemp : c.unemp) /
 // ---------- ÉVÉNEMENTS ----------
 export const EVENTS = [
   // --- naissance / petite enfance ---
-  { id: 'birth_cert', a: [0, 0], once: 1, w: 1000, run: () => { const c = C(); const d = new Date(); const mom = S.fam.mom, dad = S.fam.dad; const sib = S.fam.older ? `Tu as déjà ${S.fam.older} ${S.fam.older > 1 ? 'aînés' : 'aîné·e'}.` : 'Tu es le premier enfant.'; const dadTxt = dad.absent ? 'Ton père n’est pas là.' : `Ton père, ${dad.name}, ${dad.age} ans, est ${JOBS[dad.job].n}.`; return { t: `En ${MOIS[d.getMonth()]} ${d.getFullYear()}, tu nais ${fem() ? 'fille' : 'garçon'} ${aVille(S.city)}, ${isDia() ? `en Hexagone, dans une famille ${TBY[orig()].gentF}` : c.nom === 'La Réunion' ? 'à La Réunion' : 'en ' + c.nom}, parmi ${QTXT[S.q - 1]}. Ta mère, ${mom.name}, ${mom.age} ans, est ${JOBS[mom.job].n}. ${dadTxt} ${sib} Racines : ${S.roots}. Religion de la famille : ${REL_NM[S.rel]}.`, f: c.id === 'DIA' ? 'Environ 365 000 personnes nées dans un DROM vivent en Hexagone, deux tiers des Antillais en Île-de-France (INSEE)' : `${c.b.toLocaleString('fr')} naissances par an ${c.article} (INSEE 2024)` }; } },
+  { id: 'birth_cert', a: [0, 0], once: 1, w: 1000, run: () => { const c = C(); const d = new Date(); const mom = S.fam.mom, dad = S.fam.dad; const sib = S.fam.older ? `Tu as déjà ${S.fam.older} ${S.fam.older > 1 ? 'aînés' : 'aîné·e'}.` : 'Tu es le premier enfant.'; const dadTxt = dad.absent ? 'Ton père n’est pas là.' : `Ton père, ${dad.name}, ${dad.age} ans, est ${jobName(dad.job, C())}.`; return { t: `En ${MOIS[d.getMonth()]} ${d.getFullYear()}, tu nais ${fem() ? 'fille' : 'garçon'} ${aVille(S.city)}, ${isDia() ? `en Hexagone, dans une famille ${TBY[orig()].gentF}` : c.nom === 'La Réunion' ? 'à La Réunion' : 'en ' + c.nom}, parmi ${QTXT[S.q - 1]}. Ta mère, ${mom.name}, ${mom.age} ans, est ${jobName(mom.job, C())}. ${dadTxt} ${sib} Racines : ${S.roots}. Religion de la famille : ${REL_NM[S.rel]}.`, f: c.id === 'DIA' ? 'Environ 365 000 personnes nées dans un DROM vivent en Hexagone, deux tiers des Antillais en Île-de-France (INSEE)' : `${c.b.toLocaleString('fr')} naissances par an ${c.article} (INSEE 2024)` }; } },
   { id: 'preterm', a: [0, 0], once: 1, c: () => isDrom(), w: 2, run: () => { eff({ hl: -5 }); return { t: 'Tu nais prématuré·e. Quelques semaines en néonatologie.', k: 'bad', f: `Mortalité infantile ${C().article} : ${C().im} ‰, contre 3,5 ‰ en Hexagone (INSEE 2024)` }; } },
   { id: 'vax', a: [0, 1], once: 1, w: 3, run: () => { eff({ hl: 2 }); return 'Vaccins à la PMI. La salle d’attente est pleine.'; } },
   { id: 'steps', a: [1, 1], once: 1, w: 3, run: () => { eff({ h: 2 }); return `Premiers pas. ${parW().charAt(0).toUpperCase() + parW().slice(1)} applaudit.`; } },
@@ -186,7 +186,7 @@ export const EVENTS = [
   { id: 'informal', a: [18, 55], gap: 3, c: () => S.job === 'seeking' && isDrom() && S.flags.refuseY !== S.age && (S.money < 0 || S.focus === 'career' || S.focus === 'work'), w: 3, run: () => { takeJob('informal'); return S.money < 0 ? 'Les dettes montent. Tu te débrouilles : jobs, livraison, un peu de pêche, la vente le week-end. Non déclaré.' : 'En attendant mieux, tu te débrouilles : jobs, livraison, la vente le week-end. Non déclaré.'; } },
   { id: 'promo', a: [25, 60], gap: 4, c: () => workingP() && S.jobY >= 3 && chance(S.focus === 'work' ? 0.9 : S.focus === 'learn' ? 0.6 : 0.3), w: 2, run: () => {
       const up = (JOB_NEXT[S.job] || []).find(j => j !== S.job && (CS_RANK[JOB_CS[j]] || 1) > (CS_RANK[JOB_CS[S.job]] || 1) && JOBS[j].e <= S.edu + (S.focusW.learn ? 1 : 0));
-      if (up && S.jobY >= 6 && chance(S.focusW.learn ? 0.6 : 0.3)) { const pct = S.pct; takeJob(up, Math.max(JOBS[up].lo, pct + 0.08)); S.jobY = 3; eff({ h: 6, sm: 2 }); return { t: `Tu passes ${JOBS[up].n}. ${S.focusW.learn ? 'La formation a payé.' : 'L’ancienneté, et un chef parti à la retraite.'}`, k: 'good' }; }
+      if (up && S.jobY >= 6 && chance(S.focusW.learn ? 0.6 : 0.3)) { const pct = S.pct; takeJob(up, Math.max(JOBS[up].lo, pct + 0.08)); S.jobY = 3; eff({ h: 6, sm: 2 }); return { t: `Tu passes ${jobName(up, C())}. ${S.focusW.learn ? 'La formation a payé.' : 'L’ancienneté, et un chef parti à la retraite.'}`, k: 'good' }; }
       S.pct = clamp(S.pct + 0.06, 0, 0.99); eff({ h: 4 }); return 'Promotion. Un peu plus chaque mois.'; } },
   { id: 'layoff', a: [22, 62], gap: 5, c: () => workingP() && !['civil', 'teacher', 'nurse', 'police', 'owner'].includes(S.job) && chance(S.focus === 'work' ? 0.35 : 0.6), w: 2, run: () => { S.job = 'seeking'; S.jobY = 0; eff({ h: -6 }); return { t: varied('layoff', ['Fin de contrat. Pas renouvelé.', 'L’entreprise ferme. La grande distribution a tué le petit commerce.', 'Licenciement économique.']), k: 'bad' }; } },
   { id: 'overwork', a: [25, 60], gap: 3, c: () => workingP() && S.focusW.work > 0.5, w: 3, run: () => { eff({ hl: -4, so: -3 }); return { t: 'Tu enchaînes. Ta famille te voit le dimanche.', k: 'bad' }; } },
@@ -308,8 +308,8 @@ export const DECS = [
   {
     id: 'job', a: [16, 60], gap: 1, c: () => (S.job === 'seeking' || S.job === 'informal') && !S.school && chance((1 - unemp() * 0.8) * (S.focus === 'career' ? 1.6 : S.focus === 'learn' ? 1.1 : 0.5) * (S.flags.refuseY === S.age ? 0.25 : 1)), title: () => S.flags.refuseY === S.age - 1 || S.flags.refuseY === S.age ? 'Une autre offre' : 'Une offre', text: () => S.flags.refuseY === S.age - 1 || S.flags.refuseY === S.age ? 'Quelques mois après ton refus, une nouvelle proposition.' : S.flags.lastJob && S.flags.lastJob !== 'informal' ? `Dans ta branche, ${S.flags.lastJob === S.flags.mainJob ? 'on te connaît' : 'ton CV parle'} : une proposition.` : S.focus === 'career' ? 'Tes recherches donnent quelque chose.' : 'Une proposition arrive par un cousin.',
     choices: () => { const [a, b] = pickJobs(); const off = id => { const J = JOBS[id]; const p = clamp(J.lo + rnd() * (J.hi - J.lo) * 0.5, J.lo, J.hi); return { id, p, eur: Math.round(incomeAt(C(), p) * (C().wage * 12 / incomeAt(C(), 0.5)) / 12) }; }; const o1 = off(a), o2 = off(b); return [
-      { t: `${JOBS[o1.id].n} — ${o1.eur} €/mois`, run: () => { takeJob(o1.id, o1.p); S.flags.refuseY = null; return `Tu commences comme ${JOBS[o1.id].n}.`; } },
-      { t: `${JOBS[o2.id].n} — ${o2.eur} €/mois`, hide: o2.id === o1.id, run: () => { takeJob(o2.id, o2.p); S.flags.refuseY = null; return `Tu commences comme ${JOBS[o2.id].n}.`; } },
+      { t: `${jobName(o1.id, C())} — ${o1.eur} €/mois`, run: () => { takeJob(o1.id, o1.p); S.flags.refuseY = null; return `Tu commences comme ${jobName(o1.id, C())}.`; } },
+      { t: `${jobName(o2.id, C())} — ${o2.eur} €/mois`, hide: o2.id === o1.id, run: () => { takeJob(o2.id, o2.p); S.flags.refuseY = null; return `Tu commences comme ${jobName(o2.id, C())}.`; } },
       { t: 'Refuser et continuer à chercher', run: () => { S.flags.refuseY = S.age; S.flags.refusedN = (S.flags.refusedN || 0) + 1; eff({ h: -2 }); return 'Tu refuses. Tu continues à chercher.'; } },
     ]; },
   },

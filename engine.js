@@ -96,6 +96,18 @@ export const JOBS = {
   homemaker: { n: 'au foyer', lo: 0, hi: 0, e: 0, s: 'none' },
   retired: { n: 'retraité·e', lo: 0, hi: 0, e: 0, s: 'none' },
 };
+// intitulés locaux : ce que le métier veut dire là où on vit
+export const JOB_LOCAL = {
+  driver: { GLP: 'chauffeur·se (taxi, transport scolaire, livraison)', MTQ: 'chauffeur·se (taxi, transport scolaire, livraison)', GUF: 'chauffeur·se (taxi, camion, pirogue)', REU: 'chauffeur·se (taxi, VTC, livraison)', MYT: 'chauffeur·se de taxi collectif', DIA: 'chauffeur·se (VTC, bus, livraison)' },
+  vendor: { MYT: 'vendeur·se au marché, petit commerce', GUF: 'commerçant·e (marché, épicerie, bord de route)', DIA: 'commerçant·e (épicerie, marché, ambulant)' },
+  farm: { GLP: 'agriculteur·rice (banane, canne, maraîchage)', MTQ: 'agriculteur·rice (banane, canne, maraîchage)', GUF: 'agriculteur·rice (abattis, riz, maraîchage)', REU: 'agriculteur·rice (canne, letchis, maraîchage)', MYT: 'cultivateur·rice (manioc, bananes, ylang)' },
+  fisher: { GUF: 'pêcheur·se (fleuve, côte)', MYT: 'pêcheur·se (lagon)' },
+  hotel: { GUF: 'employé·e de restaurant', MYT: 'employé·e de restaurant, hôtel' },
+  construct: { MYT: 'ouvrier·ère du bâtiment (souvent non déclaré·e)' },
+  informal: { MYT: 'en petits boulots (vente, bâtiment, ménage, non déclaré)', GUF: 'en petits boulots (débrouille, orpaillage, vente)' },
+  civil: { GUF: 'fonctionnaire (collectivité, préfecture, CSG)', MYT: 'fonctionnaire (collectivité, rectorat)' },
+};
+export const jobName = (id, c) => (JOB_LOCAL[id] && c && JOB_LOCAL[id][c.id]) || (JOBS[id] ? JOBS[id].n : '—');
 export const WORKING = j => j && !['student', 'seeking', 'homemaker', 'retired'].includes(j);
 // catégorie socioprofessionnelle INSEE de chaque métier + secteur public
 export const JOB_CS = { bigowner: 'art', politician: 'cad', farm: 'agr', fisher: 'agr', vendor: 'art', owner: 'art', artist: 'art', engineer: 'cad', doctor: 'cad', lawyer: 'cad', teacher: 'int', nurse: 'int', tech: 'int', police: 'int', civil: 'int', clerk: 'emp', shop: 'emp', hotel: 'emp', domestic: 'emp', informal: 'emp', construct: 'ouv', driver: 'ouv' };
@@ -492,7 +504,7 @@ function parentYear(c, a) {
     const pa = P.age; P.conds = P.conds || {};
     // emploi : perte selon le territoire, retour selon le taux d'emploi
     if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && chance(0.025 * (c.unemp / 10))) { P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
-    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${JOBS[P.job].n}.`, k: 'good' }); }
+    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${jobName(P.job, c)}.`, k: 'good' }); }
     // retraite
     if (pa === 64 && WORKING(P.job)) { P.job = 'retired'; out.push({ t: `${nm} prend sa retraite.` }); }
     // maladies : mêmes prédispositions que toi, selon le territoire ; l'hérédité te suit

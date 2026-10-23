@@ -268,7 +268,7 @@ function renderId() {
 }
 const RELN = { C: 'christianisme', M: 'islam', H: 'hindouisme', N: 'sans religion', O: 'autre' };
 function renderFiche() {
-  const c = E.TBY[S.cur], o = E.TBY[S.origin]; const J = id => E.JOBS[id] ? E.JOBS[id].n : '—';
+  const c = E.TBY[S.cur], o = E.TBY[S.origin]; const J = id => E.jobName(id, c);
   const m = S.fam.mom, d = S.fam.dad; const kids = S.fam.kids;
   const sibs = (S.fam.older + S.fam.younger) ? `${S.fam.older ? S.fam.older + ' aîné·e·s' : ''}${S.fam.older && S.fam.younger ? ', ' : ''}${S.fam.younger ? S.fam.younger + ' cadet·te·s' : ''}` : 'aucun';
   $('#ficheBody').innerHTML = `<dl>
@@ -288,7 +288,7 @@ function renderFiche() {
   </dl>`;
 }
 function renderGauges() { for (const k of ['hl', 'h', 'so', 'sm']) { $('#g_' + k).style.width = S.st[k] + '%'; $('#v_' + k).textContent = Math.round(S.st[k]); }
-  const c = E.TBY[S.cur]; const J = E.JOBS[S.job]; $('#job').textContent = S.school ? ({ mat: 'maternelle', prim: 'école primaire', col: 'collège', lyc: 'lycée', uni: S.flags.bts ? 'BTS' : 'université' })[S.school] : J ? J.n : '';
+  const c = E.TBY[S.cur]; const J = E.JOBS[S.job]; $('#job').textContent = S.school ? ({ mat: 'maternelle', prim: 'école primaire', col: 'collège', lyc: 'lycée', uni: S.flags.bts ? 'BTS' : 'université' })[S.school] : J ? E.jobName(S.job, c) : '';
   $('#eur').innerHTML = S.age >= 18 ? `<b>${E.eurMois(c, S.income).toLocaleString('fr')} €</b>/mois · ${S.money < 0 ? '<b style="color:var(--hib)">' : '<b>'}${Math.round(E.eurMois(c, S.money) * 12 / 1).toLocaleString('fr')} €</b> de côté${S.debt > 0 ? ` · ${Math.round(E.eurMois(c, S.debt) * 12).toLocaleString('fr')} € de dettes` : ''}` : `revenu familial <b>${E.eurMois(c, S.famIncome || Math.max(E.incomeAt(c, 0.5) * 0.45, E.incomeAt(c, S.famPct))).toLocaleString('fr')} €</b>/mois`; }
 function feedItem(l) { const li = document.createElement('li'); li.className = l.k || 'ev'; li.innerHTML = `<span class="a">${l.a}</span><div><div class="t">${esc(l.t)}</div>${l.f ? `<div class="f">${esc(l.f)}</div>` : ''}</div>`; $('#feed').prepend(li); }
 function renderChips() {
@@ -408,7 +408,7 @@ $('#born').onclick = () => {
 };
 function showActe() {
   const c = E.TBY[S.born], o = E.TBY[S.origin]; const d = new Date(); const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-  const m = S.fam.mom, dd = S.fam.dad; const J = id => E.JOBS[id] ? E.JOBS[id].n : '—';
+  const m = S.fam.mom, dd = S.fam.dad; const J = id => E.jobName(id, c);
   const story = `En ${MOIS[d.getMonth()]} ${d.getFullYear()}, tu nais ${S.sex === 'F' ? 'fille' : 'garçon'} ${E.aVille(S.city)}, ${S.born === 'DIA' ? 'en Hexagone, dans une famille ' + o.gentF : c.id === 'REU' ? 'à La Réunion' : 'en ' + c.nom}, parmi ${['les 20 % les plus modestes', 'les 20 % modestes', 'les 20 % du milieu', 'les 20 % aisés', 'les 20 % les plus aisés'][S.q - 1]}. ${S.fam.older ? 'Tu as déjà ' + S.fam.older + (S.fam.older > 1 ? ' aînés.' : ' aîné·e.') : 'Tu es le premier enfant.'} ${dd.absent ? 'Ton père n’est pas à tes côtés.' : 'Tes deux parents sont là.'} Religion de la famille : ${RELN[S.rel]}.`;
   const lt = E.lifeTable(c, S.sex); let l = 1; for (let x = 0; x < 5; x++) l *= 1 - lt.q[x];
   $('#acte').innerHTML = `<div class="small">Acte de naissance</div><h1>${esc(S.name)}</h1><canvas id="scene0"></canvas><p class="story">${esc(story)}</p>
@@ -441,7 +441,7 @@ function showDeath() {
       <dt>Racines</dt><dd>${esc(s.roots)} · ${esc(s.rel)}</dd>
       <dt>Milieu d’origine</dt><dd>${esc(s.classe)}</dd>
       <dt>Études</dt><dd>${s.edu}</dd>
-      <dt>Travail</dt><dd>${E.JOBS[s.job] ? E.JOBS[s.job].n : '—'}</dd>
+      <dt>Travail</dt><dd>${E.jobName(s.job, s.died || c)}</dd>
       <dt>Famille</dt><dd>${s.married ? 'marié·e' : 'célibataire'}${s.kids ? `, ${s.kids} enfant${s.kids > 1 ? 's' : ''}` : ''}</dd>
       ${s.mig ? `<dt>Départ</dt><dd>en Hexagone à ${S.migY} ans${s.died.id !== 'DIA' ? ', puis retour' : ''}${s.remit ? ` · ${Math.round(E.eurMois(E.TBY.DIA, s.remit) * 12).toLocaleString('fr')} € envoyés au pays` : ''}</dd>` : ''}
       ${s.chlor ? `<dt>Chlordécone</dt><dd>présent dans le sang${S.flags.chlorHigh ? ', au-dessus du seuil' : ''}</dd>` : ''}
@@ -473,7 +473,7 @@ async function shareCard(s) {
   x.fillStyle = '#EAF2EE'; x.font = '300 88px Fraunces'; wrap(x, s.name, 80, 300, 920, 96);
   x.font = '300 300px Fraunces'; x.fillStyle = '#F2B33D'; x.fillText(String(s.age), 80, 720); x.font = '300 64px Fraunces'; x.fillStyle = '#EAF2EE'; x.fillText('ans', 80 + x.measureText(String(s.age)).width * 4.2, 720);
   x.font = '400 40px "Instrument Sans"'; x.fillStyle = '#B9CFC9';
-  let y = 820; const lines = [`${s.sex === 'F' ? 'Née' : 'Né'} à ${s.bornCity}, ${s.born.nom === 'Hexagone (diaspora)' ? 'en Hexagone de parents ultramarins' : s.born.nom}`, `${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + s.cause : ''} ${E.aVille(s.city)}`, `${s.edu} · ${E.JOBS[s.job] ? E.JOBS[s.job].n : ''}`, s.married || s.kids ? `${s.married ? 'marié·e' : ''}${s.kids ? (s.married ? ', ' : '') + s.kids + ' enfant' + (s.kids > 1 ? 's' : '') : ''}` : 'sans famille à soi'];
+  let y = 820; const lines = [`${s.sex === 'F' ? 'Née' : 'Né'} à ${s.bornCity}, ${s.born.nom === 'Hexagone (diaspora)' ? 'en Hexagone de parents ultramarins' : s.born.nom}`, `${s.sex === 'F' ? 'Morte' : 'Mort'} ${s.cause ? 'de ' + s.cause : ''} ${E.aVille(s.city)}`, `${s.edu} · ${E.jobName(s.job, s.died)}`, s.married || s.kids ? `${s.married ? 'marié·e' : ''}${s.kids ? (s.married ? ', ' : '') + s.kids + ' enfant' + (s.kids > 1 ? 's' : '') : ''}` : 'sans famille à soi'];
   for (const l of lines) { y = wrap(x, l, 80, y, 920, 50) + 14; }
   y += 40; x.fillStyle = '#7FA39C'; x.font = '400 34px "Instrument Sans"';
   for (const f of [...new Map(s.facts.map(f => [f.f, f])).values()].slice(0, 3)) { x.fillStyle = '#7FA39C'; x.fillRect(80, y - 30, 4, 40); y = wrap(x, f.f, 110, y, 890, 42) + 30; }
