@@ -25,6 +25,7 @@ const RULES = [
   { id: 'school_out', why: 'hors école : pas de « tu manques l’école »', test: (S, l, c) => !c.school && c.age >= 19 && /tu manques l’école|les profs pensent/i.test(l.t) ? l.t : null },
   { id: 'work_out', why: 'pas au travail (retraité, chômeur, enfant) : pas de « avant le travail »', test: (S, l, c) => !c.working && /avant le travail|ton patron|tes collègues/i.test(l.t) && !/pas de travail|sans travail|cherch/i.test(l.t) ? l.t : null },
   { id: 'partner_none', why: 'sans partenaire : pas de partenaire nommé', test: (S, l, c) => !c.partner && c.ptName && !S.fam.kids.some(k => k.name === c.ptName) && !(S.flags.friends || []).some(f => f.name === c.ptName) && new RegExp('\\b' + c.ptName + '\\b').test(l.t) && !/sépar|meurt|divorc|quitt|ex-|ancien/i.test(l.t) ? l.t : null },
+  { id: 'mom_home', why: 'mère au foyer / sans emploi : elle ne « rentre pas à 20 h »', test: (S, l, c) => c.momHome && /Ta mère rentre à 20 h/.test(l.t) ? l.t : null },
   { id: 'cyclone_echo', why: '« après le cyclone » sans cyclone récent', test: (S, l, c) => /Après le cyclone/.test(l.t) && !(c.rainY != null && c.age - c.rainY <= 1) ? l.t : null },
   { id: 'sex_f', why: 'texte féminin pour un homme', test: (S, l, c) => c.sex === 'M' && /\b(es enceinte|tombes enceinte|premières règles|ménopause|mammographie|chabine|endométriose|accouch)/i.test(l.t) ? l.t : null },
   { id: 'sex_m', why: 'texte masculin pour une femme', test: (S, l, c) => c.sex === 'F' && /\bchabin\b|\bton compagnon te frappe\b.*\bil\b est ton mari/i.test(l.t) ? l.t : null },
@@ -47,7 +48,7 @@ const LIFE_RULES = [
 function runLife(terr) {
   const S = E.newLife(terr ? { territory: terr } : {}); S.phase = 'life'; S.auto = true;
   const ctxAt = []; // état au moment de chaque ligne de log
-  const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
+  const snap = () => ({ age: S.age, cur: S.cur, orig: S.origin, away: !!S.away, dadAbsent: S.fam.dad.absent, dadDead: !S.fam.dad.alive, momDead: !S.fam.mom.alive, momHome: S.fam.mom.alive && ['homemaker', 'seeking'].includes(S.fam.mom.job), gpAllDead: !!(S.flags.gps && S.flags.gps.every(g => !g.alive)), kids: S.fam.kids.some(k => k.alive), school: !!S.school, working: E.WORKING(S.job), partner: !!S.fam.partner, ptName: S.flags.lastPt, rainY: S.flags.rainY, sex: S.sex, retired: !!S.retired });
   const mark = () => { while (ctxAt.length < S.log.length) ctxAt.push(snap()); };
   const hooks = {
     fire(e) { if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); const r = E.fireEvent(EVENTS, e.id); if (S.away && ev && ev.t && r) S.flags.qcBad = e.id; } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) E.choose(Math.floor(E.rnd() * S.pending.choices.length)); } mark(); if (S.fam.partner) S.flags.lastPt = S.fam.partner.name; },
