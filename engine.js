@@ -90,13 +90,15 @@ export const JOBS = {
   doctor: { n: 'médecin', lo: 0.85, hi: 0.99, e: 5, s: 'pub' },
   lawyer: { n: 'avocat·e / expert·e', lo: 0.8, hi: 0.98, e: 5, s: 'ser' },
   owner: { n: 'chef·fe d’entreprise', lo: 0.3, hi: 0.98, e: 2, s: 'ser' },
+  bigowner: { n: 'dirigeant·e du groupe familial (import-distribution, foncier)', lo: 0.97, hi: 0.995, e: 3, s: 'ser' },
+  politician: { n: 'élu·e (maire, conseiller·ère)', lo: 0.75, hi: 0.95, e: 3, s: 'pub' },
   artist: { n: 'musicien·ne / artiste', lo: 0.1, hi: 0.7, e: 1, s: 'ser' },
   homemaker: { n: 'au foyer', lo: 0, hi: 0, e: 0, s: 'none' },
   retired: { n: 'retraité·e', lo: 0, hi: 0, e: 0, s: 'none' },
 };
 export const WORKING = j => j && !['student', 'seeking', 'homemaker', 'retired'].includes(j);
 // catégorie socioprofessionnelle INSEE de chaque métier + secteur public
-export const JOB_CS = { farm: 'agr', fisher: 'agr', vendor: 'art', owner: 'art', artist: 'art', engineer: 'cad', doctor: 'cad', lawyer: 'cad', teacher: 'int', nurse: 'int', tech: 'int', police: 'int', civil: 'int', clerk: 'emp', shop: 'emp', hotel: 'emp', domestic: 'emp', informal: 'emp', construct: 'ouv', driver: 'ouv' };
+export const JOB_CS = { bigowner: 'art', politician: 'cad', farm: 'agr', fisher: 'agr', vendor: 'art', owner: 'art', artist: 'art', engineer: 'cad', doctor: 'cad', lawyer: 'cad', teacher: 'int', nurse: 'int', tech: 'int', police: 'int', civil: 'int', clerk: 'emp', shop: 'emp', hotel: 'emp', domestic: 'emp', informal: 'emp', construct: 'ouv', driver: 'ouv' };
 export const JOB_PUB = { teacher: 1, nurse: 0.8, civil: 1, police: 1, clerk: 0.5, doctor: 0.6, tech: 0.3, engineer: 0.3, domestic: 0.2 };
 export const CS_NM = { agr: 'agriculteurs', art: 'artisans, commerçants', cad: 'cadres', int: 'professions intermédiaires', emp: 'employés', ouv: 'ouvriers' };
 export const CS_Q = { agr: 2, art: 3, cad: 5, int: 4, emp: 2, ouv: 2 };
@@ -233,14 +235,17 @@ export function newLife(opt = {}) {
   const sex = opt.sex || (chance(0.512) ? 'M' : 'F');
   // quintile familial : la pauvreté du territoire pousse vers le bas
   const povShift = (c.pov - 15) / 100; // 0.19 GLP … 0.62 MYT
+  // élites : békés et blancs-pays (Antilles), gros blancs (Réunion) ; familles d'entrepreneurs ; familles politiques
+  const eliteP = ({ MTQ: 0.008, GLP: 0.003, REU: 0.004 })[c.id] || 0;
+  const elite = chance(eliteP) ? 'beke' : chance(0.025) ? 'biz' : chance(0.012) ? 'pol' : null;
   const qw = [1, 2, 3, 4, 5].map(q => Math.exp(-((q - 3 + povShift * 3) ** 2) / 3));
-  const q = +wpick(Object.fromEntries(qw.map((w, i) => [i + 1, w])));
+  const q = elite === 'beke' ? 5 : elite === 'biz' ? pick([4, 5]) : elite === 'pol' ? pick([4, 4, 5]) : +wpick(Object.fromEntries(qw.map((w, i) => [i + 1, w])));
   const urban = chance(c.urb / 100);
   // origine familiale : pour la diaspora, le DROM des parents (composition INSEE 2008 : MTQ 32 %, GLP 32 %, REU 30 %, GUF 7 %, MYT 3 %, approx)
   const origin = c.id === 'DIA' ? wpick({ MTQ: 32, GLP: 32, REU: 30, GUF: 4, MYT: 2 }) : c.id;
   const oc = TBY[origin];
   const name = makeName(oc.nm, sex);
-  const roots = pick(ROOTS[origin] || ROOTS.GLP);
+  const roots = elite === 'beke' ? (c.id === 'REU' ? 'gros blancs (grands propriétaires)' : c.id === 'GLP' ? 'blancs-pays (descendants de colons)' : 'béké (descendants de colons)') : pick(ROOTS[origin] || ROOTS.GLP);
   const rel = relPick(oc);
   const lt = lifeTable(c, sex);
   const mAge = Math.round(clamp(27 + (rnd() + rnd() + rnd() - 1.5) * 8 + (c.tfr - 2) * -1.5, 15, 45));
@@ -253,16 +258,19 @@ export function newLife(opt = {}) {
   const paceMin = opt.paceMin || 60;
   // parents : prénoms, métiers selon le quintile, revenu familial
   const momName = makeName(oc.nm, 'F').split(' ')[0], dadName = makeName(oc.nm, 'M').split(' ')[0];
-  const momJob = parentJob(c, q, 'F'), dadJob = parentJob(c, q, 'M');
+  let momJob = parentJob(c, q, 'F'), dadJob = parentJob(c, q, 'M');
+  if (elite === 'beke') { dadJob = 'bigowner'; if (chance(0.5)) momJob = 'homemaker'; }
+  if (elite === 'biz') { if (chance(0.7)) dadJob = 'owner'; else momJob = 'owner'; }
+  if (elite === 'pol') { if (chance(0.75)) dadJob = 'politician'; else momJob = 'politician'; }
   const famPct = clamp((q - 0.5) / 5 + (rnd() - 0.5) * 0.12, 0.03, 0.97);
   S = {
-    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, classe: socialClass(c, momJob, dadJob), yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 120),
+    v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, elite, classe: elite === 'beke' ? 'famille de la plantocratie' : elite === 'biz' ? 'famille d’entrepreneurs' : elite === 'pol' ? 'famille politique' : socialClass(c, momJob, dadJob), yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 120),
     t: 0, age: 0, speed: 1, paused: false, pending: null,
     born: c.id, cur: c.id, sex, q, urban, name, city: urban ? pick(c.villes) : pick(c.campagne.length ? c.campagne : c.villes), bornCity: null,
     st: { hl: clamp(80 + (q - 3) * 3 - c.u5 / 4 + ri(-6, 6), 40, 95), h: 60 + ri(-8, 8), sm: 50, so: 55 + ri(-6, 6) },
     money: 0, debt: 0, income: 0, pct: 0, job: 'student', jobY: 0,
     edu: 0, school: null, schoolY: 0, focus: null, fT: {}, focusW: {},
-    fam: { mom: { age: mAge, alive: true, name: momName, job: momJob }, dad: { age: fAge, alive: true, absent: chance(absentP), name: dadName, job: dadJob }, older, younger: total - 1 - older, partner: null, married: false, kids: [] },
+    fam: { mom: { age: mAge, alive: true, name: momName, job: momJob }, dad: { age: fAge, alive: true, absent: elite ? false : chance(absentP), name: dadName, job: dadJob }, older, younger: total - 1 - older, partner: null, married: false, kids: [] },
     smoker: false, alc: false, conds: {}, hobbies: [], mig: null, migY: 0, retired: false, pension: 0,
     log: [], years: [], queue: [], recent: [], flags: {}, deathAt: null,
     stats: { maxIncome: 0, decisions: 0, kidsBorn: 0, tripsHome: 0, remitTotal: 0 },
