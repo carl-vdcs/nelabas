@@ -34,7 +34,7 @@ const garden = () => ({ MYT: 'Le champ : manioc, bananes, ylang.', GUF: 'L’aba
 const tz = () => ({ REU: '2 heures de plus', MYT: '1 heure de plus', GUF: '4 heures de moins' })[orig()] || '5 heures de moins';
 const ile = () => ({ REU: 'Maurice', MYT: 'Madagascar ou les Comores', GUF: 'le Brésil, par la route', GLP: 'la Dominique' })[S.cur] || 'Sainte-Lucie';
 // fratrie : chaque frère ou sœur a un sexe fixé une fois pour toutes
-function sibs() { if (!S.flags.sibs) { S.flags.sibs = []; for (let i = 0; i < S.fam.older; i++) S.flags.sibs.push({ sex: chance(0.5) ? 'M' : 'F', older: 1 }); for (let i = 0; i < S.fam.younger; i++) S.flags.sibs.push({ sex: chance(0.5) ? 'M' : 'F', older: 0 }); } return S.flags.sibs; }
+export function sibs() { if (!S.flags.sibs) { S.flags.sibs = []; for (let i = 0; i < S.fam.older; i++) S.flags.sibs.push({ sex: chance(0.5) ? 'M' : 'F', older: 1 }); for (let i = 0; i < S.fam.younger; i++) S.flags.sibs.push({ sex: chance(0.5) ? 'M' : 'F', older: 0 }); } return S.flags.sibs; }
 const sibW = (s, cap) => { const w = s.sex === 'F' ? (s.older ? 'ta grande sœur' : 'ta petite sœur') : (s.older ? 'ton grand frère' : 'ton petit frère'); return cap ? w.charAt(0).toUpperCase() + w.slice(1) : w; };
 const sibAny = () => sibs().length ? pick(sibs()) : null;
 // l'oncle vieillit avec toi : passé 55 ans c'est un cousin, passé 72 un neveu
