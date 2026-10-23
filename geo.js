@@ -126,3 +126,12 @@ export const HEX = {
   autre: { nom: 'une autre grande ville (Lyon, Lille, Nantes, Rennes)', villes: ['Lyon', 'Lille', 'Nantes', 'Rennes'], loyer: 0.7, m2: 3900 },
 };
 export function hexRegionW(orig) { return orig === 'REU' || orig === 'MYT' ? { idf: 45, sud: 35, autre: 20 } : { idf: 65, sud: 20, autre: 15 }; }
+
+// Enseignement supérieur réellement disponible sur place (établissements et filières), 2025, approx
+export const SUP = {
+  GLP: { u: 'Université des Antilles, campus de Fouillole (Pointe-à-Pitre)', has: { droit: 1, lettres: 1, sci: 1, sante: 1, social: 1 }, notes: { sante: 'PASS (1re année de médecine) et IFSI du CHU ; la suite des études de médecine se fait en Hexagone', sci: 'licences de biologie, physique-chimie, maths-info ; peu de masters' }, missing: { ecole: 'pas d’école d’ingénieurs ni de commerce (hors BTS)' }, near: 'MTQ' },
+  MTQ: { u: 'Université des Antilles, campus de Schœlcher', has: { droit: 1, lettres: 1, social: 1, sante: 1 }, notes: { sante: 'IFSI du CHU et PASS ; médecine se poursuit en Hexagone', droit: 'droit-éco-gestion, la plus grosse faculté du campus' }, missing: { sci: 'les sciences dures sont à Pointe-à-Pitre (Fouillole)', ecole: 'pas d’école d’ingénieurs ni de commerce' }, near: 'GLP' },
+  GUF: { u: 'Université de Guyane (Cayenne), IUT de Kourou', has: { droit: 1, lettres: 1, sci: 1, sante: 1 }, notes: { sci: 'licence de sciences à Cayenne, DUT réseaux-informatique à Kourou, à côté du Centre spatial', sante: 'IFSI de Cayenne ; PASS depuis 2020, la suite en Hexagone ou aux Antilles' }, missing: { social: 'pas de STAPS complet', ecole: 'pas d’école d’ingénieurs : les ingénieurs du CSG viennent d’Hexagone' }, near: 'MTQ' },
+  REU: { u: 'Université de La Réunion (Saint-Denis, Le Tampon), IUT de Saint-Pierre', has: { droit: 1, lettres: 1, sci: 1, sante: 1, social: 1, ecole: 1 }, notes: { sante: 'UFR Santé : médecine jusqu’au 2e cycle, IFSI', ecole: 'ESIROI (ingénieurs agroalimentaire, bâtiment, informatique) et IAE : la seule offre d’ingénieurs des DROM' }, missing: {}, near: null },
+  MYT: { u: 'Centre universitaire de Mayotte (Dembéni)', has: { droit: 1, lettres: 1, sci: 1 }, notes: { droit: 'licence de droit à Dembéni, 3 ans, puis La Réunion ou l’Hexagone', sci: 'licence de sciences, promos petites' }, missing: { sante: 'IFSI ouvert en 2020, 40 places ; pas de médecine', social: 'pas de STAPS', ecole: 'rien' }, near: 'REU' },
+};

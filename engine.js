@@ -3,7 +3,7 @@
 // revenu log-normal par Gini, causes de décès par bande d'âge), réécrites.
 import { TERRITORIES, HEXAGONE } from './data.js';
 import { maternite, HEX } from './geo.js';
-export { maternite, lycees, CPGE, HEX, hexRegionW } from './geo.js';
+export { maternite, lycees, CPGE, HEX, hexRegionW, SUP } from './geo.js';
 
 // ---------- aléatoire ----------
 let _seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
@@ -147,6 +147,11 @@ function jobWeight0(c, id) {
   if (c.id === 'MYT' && id === 'informal') w *= 3; // emploi informel massif
   if (c.id === 'GUF' && id === 'construct') w *= 1.5;
   if ((c.id === 'GLP' || c.id === 'MTQ') && id === 'hotel') w *= 1.5;
+  // tissu économique local (INSEE, Dares) : spatial et BTP en Guyane, peu de cadres privés à Mayotte, tourisme à La Réunion, banane-canne aux Antilles
+  if (c.id === 'GUF' && (id === 'tech' || id === 'engineer')) w *= 1.6;
+  if (c.id === 'MYT' && (id === 'engineer' || id === 'lawyer' || id === 'doctor')) w *= 0.35; if (c.id === 'MYT' && (id === 'vendor' || id === 'construct' || id === 'civil' || id === 'teacher')) w *= 1.4; if (c.id === 'MYT' && id === 'hotel') w *= 0.4;
+  if (c.id === 'REU' && (id === 'hotel' || id === 'tech')) w *= 1.2;
+  if ((c.id === 'GLP' || c.id === 'MTQ') && id === 'farm') w *= 1.2;
   return w;
 }
 export const socialClass = (c, momJob, dadJob) => { const j = dadJob && !['homemaker', 'seeking', 'informal'].includes(dadJob) ? dadJob : momJob; const cs = JOB_CS[j]; const pub = (JOB_PUB[j] || 0) >= 0.8; if (!cs) return j === 'homemaker' ? 'famille sans emploi' : 'famille sans emploi stable'; return 'famille ' + (pub ? 'de fonctionnaires' : CS_NM[cs] === 'cadres' ? 'de cadres' : 'd’' + CS_NM[cs]); };
