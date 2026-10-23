@@ -427,7 +427,7 @@ export function die(forced, label) {
 
 // ---------- décisions ----------
 export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
-export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
+export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; S.flags.lastDec = { id: p.id, t: ch.t, a: S.age, title: p.title }; (S.decisions = S.decisions || []).push({ id: p.id, t: ch.t, a: S.age, title: p.title, auto: !!S.auto }); const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
 
 // ---------- résumé ----------
 export function summary() {

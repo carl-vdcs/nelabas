@@ -176,7 +176,7 @@ textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border
 <section id="draw" class="wrap hidden"><div class="lbl">Tirage de ton territoire de naissance</div><h1 id="drawName"></h1><div class="p" id="drawP"></div></section>
 <section id="acte" class="wrap hidden"></section>
 <section id="life" class="wrap hidden">
-  <div class="hdr"><div class="top"><div class="age"><span id="age">0</span><small>ans</small></div><div class="where" id="where"></div><div class="ctl"><button id="fs" title="Plein écran">⛶</button><button id="auto" aria-pressed="false" title="Mode automatique">auto</button></div></div>
+  <div class="hdr"><div class="top"><div class="age"><span id="age">0</span><small>ans</small></div><div class="where" id="where"></div><div class="ctl"><button id="fs" title="Plein écran">⛶</button><button id="auto" aria-pressed="false" title="Mode automatique : les décisions sont prises pour toi">auto</button></div></div>
   <div class="speeds" id="speeds"><button id="pause" aria-pressed="false">❚❚ Pause</button><button data-s="1" aria-pressed="true">1×</button><button data-s="2">2×</button><button data-s="4">4×</button><button data-s="8">8×</button><button data-s="16">16×</button><button id="next">Suivante »</button></div>
   <div class="id"><canvas id="portrait" width="24" height="24"></canvas><div><div class="nm" id="nm"></div><div class="sub" id="sub"></div></div></div>
   <div class="gauges">
@@ -206,6 +206,7 @@ import { TERRITORIES, HEXAGONE, SOURCES } from './data.js';
 import { makeScene } from './scene.js';
 let SCENE = null, SCENE2 = null;
 const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random() * a.length)];
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 let S = null, paceMin = 60, raf = null, last = 0;
 // compteurs d'accueil : ~33 700 naissances/an dans les 5 DROM + diaspora ≈ 38 700 → 1 toutes les 13,6 min ; décès ≈ 15 800/an → 1 toutes les 33 min
@@ -325,7 +326,7 @@ function renderFoot() {
 const hooks = {
   fire(e) {
     if (e.type === 'ev') { const ev = EVENTS.find(x => x.id === e.id); if (!ev) return; const r = ev.run(); if (r) { const l = typeof r === 'string' ? E.log(r) : E.log(r.t, r.k, r.f); feedItem(l); } S.flags['ev_' + e.id] = S.age; S.recent.push(e.id); if (S.recent.length > 14) S.recent.shift(); renderId(); renderGauges(); renderScene(); if (S.phase === 'dead') showDeath(); }
-    else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { if (S.auto) { E.choose(Math.floor(E.rnd() * S.pending.choices.length)); const l = S.log[S.log.length - 1]; if (l && l.k === 'dec') feedItem(l); renderAll(); } else showDecision(); } }
+    else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { if (S.auto) { const i = autoPick(S.pending); const chosen = S.pending.choices[i].t; const title = S.pending.title; E.choose(i); feedItem({ a: S.age, t: `${title} — tu as choisi : « ${chosen} ».`, k: 'dec' }); const l = S.log[S.log.length - 1]; if (l && (l.k === 'dec' || l.k === 'loss')) feedItem(l); renderAll(); } else showDecision(); } }
     else if (e.type === 'ms') { const l = { a: S.age, t: ({ 1: 'Un an. Tu as passé la première année.', 5: 'Cinq ans.', 15: 'Quinze ans.', 30: 'Trente ans.', 50: 'Cinquante ans.', 65: 'Soixante-cinq ans.', 80: 'Quatre-vingts ans.', 90: 'Quatre-vingt-dix ans.', 100: 'Cent ans.' })[S.age] + ' ' + survivors(), k: 'ms' }; feedItem(l); }
     else if (e.type === 'reflect') { if (!S.auto) showReflect(e.id); }
   },
@@ -337,11 +338,20 @@ const hooks = {
 };
 function survivors() { const c = E.TBY[S.born]; const lt = E.lifeTable(c, S.sex); let l = 1; for (let x = 0; x < S.age; x++) l *= 1 - lt.q[x]; return `Sur 100 ${S.sex === 'F' ? 'filles nées' : 'garçons nés'} la même année ${c.article}, ${Math.round(l * 100)} sont encore là.`; }
 
+// tempérament du mode automatique : chaque choix est noté selon des mots-clés, le meilleur l'emporte (avec un peu de hasard)
+const LEAN = {
+  prudent: { 'rester': 2, 'garder': 2, 'suivre': 2, 'secteur': 1, 'locataire': 1, 'non': 1, 'pas maintenant': 1, 'réviser': 2, 'général': 1 },
+  ambitieux: { 'partir': 2, 'hexagone': 1, 'concours': 2, 'lancer': 2, 'université': 2, 'privé': 1, 'job': 1, 'marier': 1, 'construire': 1 },
+  familial: { 'rester': 2, 'rentrer': 3, 'oui': 2, 'marier': 2, 'famille': 2, 'pays': 2, 'construire': 1, 'ensemble': 1, 'aider': 1 },
+  curieux: { 'partir': 2, 'étudier': 2, 'université': 1, 'musique': 2, 'plage': 1, 'vacances': 1, 'lancer': 1, 'formation': 1 },
+};
+function autoPick(p) { const L = LEAN[S.lean] || LEAN.prudent; let best = 0, bs = -1; p.choices.forEach((c, i) => { let sc = Math.random() * 1.5; const t = c.t.toLowerCase(); for (const k in L) if (t.includes(k)) sc += L[k]; if (sc > bs) { bs = sc; best = i; } }); return best; }
 // ---------- feuilles ----------
 function sheet(html) { const s = $('#sheet'); s.className = 'sheet'; s.innerHTML = `<div class="box">${html}</div>`; return s; }
 function closeSheet() { $('#sheet').className = 'hidden'; $('#sheet').innerHTML = ''; }
 function showDecision() {
-  const p = S.pending; const s = sheet(`<h2>${esc(p.title)}</h2><p>${esc(p.text)}</p>${p.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c.t)}</button>`).join('')}`);
+  const p = S.pending; const ld = S.flags.lastDec; const recall = ld && ld.id !== p.id ? `<div class="small" style="margin:-6px 0 14px">Ton dernier choix, à ${ld.a} ans : « ${esc(ld.t)} ».</div>` : '';
+  const s = sheet(`<div class="small">${S.age} ans · ${esc(S.city)}</div><h2>${esc(p.title)}</h2><p>${esc(p.text)}</p>${recall}${p.choices.map((c, i) => `<button class="choice" data-i="${i}">${esc(c.t)}</button>`).join('')}<p class="small" style="margin-top:12px">Les choix changent les probabilités, pas le destin.</p>`);
   s.onclick = e => { const b = e.target.closest('.choice'); if (!b) return; E.choose(+b.dataset.i); const l = S.log[S.log.length - 1]; if (l && (l.k === 'dec' || l.k === 'loss')) feedItem(l); closeSheet(); renderAll(); if (S.phase === 'dead') showDeath(); };
 }
 function showReflect(age) {
@@ -376,9 +386,12 @@ function showActe() {
   <div class="fiche" style="padding:14px"><dl style="margin:0"><dt>Sexe</dt><dd>${S.sex === 'F' ? 'Femme' : 'Homme'}</dd><dt>Lieu</dt><dd>${esc(S.city)}${S.urban ? '' : ', campagne'}</dd><dt>Racines</dt><dd>${esc(S.roots)}</dd><dt>Mère</dt><dd>${esc(m.name)}, ${m.age} ans, ${J(m.job)}</dd><dt>Père</dt><dd>${dd.absent ? 'absent' : esc(dd.name) + ', ' + dd.age + ' ans, ' + J(dd.job)}</dd><dt>Milieu</dt><dd>${esc(S.classe)}</dd><dt>Revenu familial</dt><dd>quintile ${S.q} · ${E.eurMois(c, Math.max(E.incomeAt(c, 0.5) * 0.45, E.incomeAt(c, S.famPct))).toLocaleString('fr')} €/mois</dd></dl></div>
   <div class="ctxcard"><h3>${c.id === 'DIA' ? 'Né·e en Hexagone, de parents ' + esc(o.gentF) + 's' : esc(c.nom)}</h3><p>${esc(c.contexte || '')}</p><div class="kpis"><div><b>${String(c.le).replace('.', ',')}</b>ans d’espérance de vie</div><div><b>${(100 - l * 100).toFixed(1).replace('.', ',')} %</b>de risque de mourir avant 5 ans</div><div><b>${c.pov} %</b>sous le seuil de pauvreté</div></div></div>
   <p class="small">Vivre jusqu’à l’espérance de vie prend environ ${S.paceMin >= 60 ? (S.paceMin / 60 + ' h').replace('1.5 h', '1 h 30') : S.paceMin + ' min'} (1 an ≈ ${Math.round(S.yearSec)} s). Tu peux accélérer jusqu’à ×16 ou passer une année. Les choix changent les probabilités, pas le destin.</p>
-  <div class="row"><button class="primary" id="startLife">Commencer la vie</button></div>`;
+  <div class="small" style="margin:18px 0 6px">Comment veux-tu vivre cette vie ?</div>
+  <div class="row" style="margin-top:0"><button class="primary" id="startLife">Je fais mes choix</button><button id="startAuto">Je regarde, en automatique</button></div>
+  <p class="small">En automatique, les décisions sont prises pour toi selon un tempérament tiré au sort, et tu peux reprendre la main à tout moment avec le bouton « auto ».</p>`;
   $('#draw').classList.add('hidden'); $('#acte').classList.remove('hidden'); window.scrollTo(0, 0);
   SCENE2 = makeScene($('#scene0')); SCENE2.set(sceneState());
+  $('#startAuto').onclick = () => { S.auto = true; S.lean = pick(['prudent', 'ambitieux', 'familial', 'curieux']); $('#startLife').click(); };
   $('#startLife').onclick = () => { SCENE2.stop(); S.phase = 'life'; $('#acte').classList.add('hidden'); $('#life').classList.remove('hidden'); $('#feed').innerHTML = ''; window.scrollTo(0, 0); E.planYear(EVENTS, DECS); renderAll(); last = 0; if (!raf) raf = requestAnimationFrame(loop); };
 }
 
@@ -408,6 +421,7 @@ function showDeath() {
     </dl></div>
     <div class="cert"><h3>Une vie en courbes</h3><svg class="chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="#F2B33D" stroke-width="2" points="${pts('h')}"/><polyline fill="none" stroke="#6FBF8A" stroke-width="2" points="${pts('hl')}"/><polyline fill="none" stroke="#7FA39C" stroke-width="1.5" stroke-dasharray="3 3" points="${pts('so')}"/></svg><div class="small"><span style="color:#F2B33D">— bonheur</span> &nbsp; <span style="color:#6FBF8A">— santé</span> &nbsp; <span style="color:#7FA39C">- - liens</span></div></div>
     <div class="cert"><h3>Ce que cette vie a traversé</h3><ul>${facts.map(f => `<li>${esc(f.f)}</li>`).join('') || '<li>Une vie sans histoire.</li>'}</ul></div>
+    ${(S.decisions || []).length ? `<div class="cert"><h3>Les choix de cette vie</h3><ul>${S.decisions.map(d => `<li><span style="color:var(--mut)">${d.a} ans —</span> ${esc(d.title)} : ${esc(d.t)}${d.auto ? ' <span style="color:var(--mut)">(auto)</span>' : ''}</li>`).join('')}</ul></div>` : ''}
     ${refl ? `<div class="cert"><h3>Ce que tu as écrit en route</h3><ul>${refl}</ul></div>` : ''}
     <div class="cert"><h3>${home ? `Si ${s.sex === 'F' ? 'elle' : 'il'} était né·e là où tu es né·e` : 'Et en Hexagone, sans lien avec l’outre-mer'}</h3><div class="cmp">
       <div>${esc(c.nom === 'Hexagone (diaspora)' ? 'Diaspora' : c.nom)}<b>${c.le} ans</b>espérance de vie<br>${c.pov} % de pauvreté<br>${c.dia} % de diabète</div>
