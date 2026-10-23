@@ -1,7 +1,7 @@
-name: Rapport qualité hebdomadaire
+name: Rapport qualité (tous les deux jours)
 on:
   schedule:
-    - cron: '17 6 * * 1'   # lundi 6h17 UTC
+    - cron: '17 10 */2 * *'   # tous les deux jours, 10h17 UTC = 6h17 Martinique
   workflow_dispatch:
 jobs:
   report:

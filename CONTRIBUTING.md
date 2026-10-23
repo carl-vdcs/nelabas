@@ -5,7 +5,7 @@
 1. Tout se fait sur la branche `dev`. Un push déclenche la CI (`.github/workflows/ci.yml`) :
    syntaxe → linter de récits (`lint.mjs`, 30 règles issues des retours de test) → calibrage (`tests/calib.mjs`) → test navigateur (`tests/smoke.mjs`).
 2. Si tout passe, la CI avance `main` sur `dev` ; GitHub Pages déploie `main` sur nelabas.ecarlitobsm.com.
-3. Chaque lundi, `weekly.yml` simule 1 000 vies et ouvre une issue « Rapport qualité » : règles en échec, calibrage, événements jamais déclenchés, fréquences.
+3. Tous les deux jours, `weekly.yml` simule 1 000 vies et ouvre une issue « Rapport qualité » : règles en échec, calibrage, événements jamais déclenchés, fréquences.
 4. **Chaque retour de testeur devient une règle** dans `lint.mjs` (RULES ou LIFE_RULES) avant d'être corrigé : la régression est alors impossible.
 
 ## Ajouter un événement ou une décision (`events.js`)
