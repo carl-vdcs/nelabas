@@ -384,7 +384,7 @@ export function ensureFocus() { const o = focusOptions(); if (!o.length) { S.foc
 function autoFocus(o) { const pref = ['balance', 'family', 'study', 'work', 'health', 'play']; return pref.find(p => o.includes(p)) || o[0]; }
 
 // tire un événement en revérifiant sa condition à l'instant (l'état a pu changer depuis le début de l'année)
-export function fireEvent(EVENTS, id) { const ev = EVENTS.find(x => x.id === id); if (!ev) return null; if (ev.c && !ev.c()) return null; if (ev.t && !ev.t.includes(S.cur)) return null; const r = ev.run(); S.flags['ev_' + id] = S.age; S.recent.push(id); if (S.recent.length > 14) S.recent.shift(); if (!r) return null; return typeof r === 'string' ? log(r) : log(r.t, r.k, r.f); }
+export function fireEvent(EVENTS, id) { const ev = EVENTS.find(x => x.id === id); if (ev && ev.t && S.away) return null; if (!ev) return null; if (ev.c && !ev.c()) return null; if (ev.t && !ev.t.includes(S.cur)) return null; const r = ev.run(); S.flags['ev_' + id] = S.age; S.recent.push(id); if (S.recent.length > 14) S.recent.shift(); if (!r) return null; return typeof r === 'string' ? log(r) : log(r.t, r.k, r.f); }
 // variantes : évite de répéter la même phrase d'un événement à variantes
 export function varied(key, arr) { const seen = S.flags['var_' + key] || []; const fresh = arr.filter(x => !seen.includes(x)); const pickFrom = fresh.length ? fresh : arr; const v = pickFrom[Math.floor(rnd() * pickFrom.length)]; S.flags['var_' + key] = fresh.length ? [...seen, v] : [v]; return v; }
 export function eff(e) { for (const k in e) if (S.st[k] != null) S.st[k] = clamp(S.st[k] + e[k], 0, 100); }

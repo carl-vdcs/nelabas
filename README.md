@@ -23,3 +23,9 @@ Test local : `python3 -m http.server 8765` puis http://localhost:8765/
 ## Hébergement
 GitHub Pages (branche main, racine) → nelabas.ecarlitobsm.com via CNAME chez Hostinger.
 Chaque push sur main redéploie.
+
+## Tests de cohérence
+
+- `node sim.mjs 500` — calibrage statistique (âge de décès vs espérance de vie INSEE, revenus, enfants, émigration).
+- `node lint.mjs 300 [GLP|MTQ|GUF|REU|MYT|DIA]` — linter de récits : génère des vies en automatique et vérifie les règles issues des retours de test (lieux vs localisation, parents absents/morts, grands-parents, enfants, école/travail, sexe, Québec, revenus des parents, religion/racines, carnation, répétition des décisions, doublons d'identifiants). Sort en erreur si une règle échoue.
+- Trace d'une vie : `node /chemin/audit.mjs <seed> <TERR>` (scratch).
