@@ -257,6 +257,10 @@ export function parentJob(c, q, sex) {
   return wpick(w);
 }
 
+// revenu d'un parent : position dans la fourchette de son métier, tirée selon le quintile
+export function jobPct(job, q) { const J = JOBS[job]; if (!J || !WORKING(job)) return 0; return clamp(J.lo + (J.hi - J.lo) * clamp((q - 1) / 4 + (rnd() - 0.5) * 0.3, 0.05, 0.95), J.lo, J.hi); }
+export function parentIncome(c, P) { if (!P || !P.alive || P.absent || !WORKING(P.job)) return 0; if (P.pct == null) P.pct = jobPct(P.job, S.q); let inc = incomeAt(c, P.pct); if (JOB_PUB[P.job] && c.id !== 'DIA') inc *= 1 + (JOB_PUB[P.job] >= 0.8 ? (c.id === 'REU' ? 0.53 : 0.4) : 0.2); return Math.max(inc, incomeAt(c, 0.5) * 0.62); }
+export function famIncomeCalc(c) { const mom = parentIncome(c, S.fam.mom), dad = parentIncome(c, S.fam.dad); const n = (S.fam.mom.alive ? 1 : 0) + (S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0); const floor = incomeAt(c, 0.5) * (n ? 0.4 : 0.3); return Math.max(mom + dad, floor); }
 export function newLife(opt = {}) {
   const c = opt.territory ? TBY[opt.territory] : chooseTerritory(opt.mode || 'birth');
   const sex = opt.sex || (chance(0.512) ? 'M' : 'F');
@@ -273,7 +277,9 @@ export function newLife(opt = {}) {
   const oc = TBY[origin];
   const name = makeName(oc.nm, sex);
   const roots = elite === 'beke' ? (c.id === 'REU' ? 'gros blancs (grands propriétaires)' : c.id === 'GLP' ? 'blancs-pays (descendants de colons)' : 'béké (descendants de colons)') : pick(ROOTS[origin] || ROOTS.GLP);
-  const rel = relPick(oc);
+  let rel = relPick(oc);
+  // cohérence racines → religion (zarabs réunionnais musulmans, malbars majoritairement hindous, Malgaches de Mayotte musulmans, Hmong chrétiens/animistes…)
+  if (/zarab|comorienne|mahoraise/.test(roots)) rel = 'M'; else if (/malbar/.test(roots)) rel = chance(0.7) ? 'H' : 'C'; else if (/malgache/.test(roots)) rel = chance(0.85) ? 'M' : 'C'; else if (/hmong/.test(roots)) rel = chance(0.6) ? 'C' : 'O'; else if (/chinoise/.test(roots)) rel = chance(0.6) ? 'C' : 'N'; else if (/yab|zoreil|béké|blancs/.test(roots) && rel === 'H') rel = 'C'; else if (rel === 'M' && !/comor|indienne|kouli/.test(roots) && c.id !== 'MYT') rel = chance(0.5) ? 'C' : 'N';
   const lt = lifeTable(c, sex);
   const mAge = Math.round(clamp(27 + (rnd() + rnd() + rnd() - 1.5) * 8 + (c.tfr - 2) * -1.5, 15, 45));
   const fAge = Math.round(clamp(mAge + 3 + (rnd() - 0.5) * 8, 17, 65));
@@ -297,13 +303,17 @@ export function newLife(opt = {}) {
     st: { hl: clamp(80 + (q - 3) * 3 - c.u5 / 4 + ri(-6, 6), 40, 95), h: 60 + ri(-8, 8), sm: 50, so: 55 + ri(-6, 6) },
     money: 0, debt: 0, income: 0, pct: 0, job: 'student', jobY: 0,
     edu: 0, school: null, schoolY: 0, focus: null, fT: {}, focusW: {},
-    fam: { mom: { age: mAge, alive: true, name: momName, job: momJob }, dad: { age: fAge, alive: true, absent: elite ? false : chance(absentP), name: dadName, job: dadJob }, older, younger: total - 1 - older, partner: null, married: false, kids: [] },
+    fam: { mom: { age: mAge, alive: true, name: momName, job: momJob, pct: jobPct(momJob, q) }, dad: { age: fAge, alive: true, absent: elite ? false : chance(absentP), name: dadName, job: dadJob, pct: jobPct(dadJob, q) }, older, younger: total - 1 - older, partner: null, married: false, kids: [] },
     smoker: false, alc: false, conds: {}, hobbies: [], mig: null, migY: 0, retired: false, pension: 0,
     log: [], years: [], queue: [], recent: [], flags: {}, deathAt: null,
     stats: { maxIncome: 0, decisions: 0, kidsBorn: 0, tripsHome: 0, remitTotal: 0 },
     facts: [],
   };
   S.bornCity = S.city; S.bornHosp = maternite(c.id, S.city);
+  S.famIncome = famIncomeCalc(c); S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
+  if (!S.elite) S.q = clamp(Math.ceil(S.famPct * 5), 1, 5); // le quintile affiché suit le revenu réel des parents
+  // grands-parents : pour un enfant né en Hexagone, ils sont souvent restés au pays (sauf génération BUMIDOM déjà installée)
+  S.flags.gpsFar = c.id === 'DIA' ? !chance(0.4) : false;
   // chlordécone : imprégnation dès l'enfance, proportionnelle au taux adulte (approx : enfants un peu moins)
   if (c.chlor && (c.id === 'GLP' || c.id === 'MTQ') && chance(c.chlor / 100 * 0.9)) S.flags.chlor = 1;
   // drépanocytose : 1 naissance sur 227 (Guyane) à 1 sur 4 551 (Réunion) ; porteurs sains ~5 % dans les DROM
@@ -325,7 +335,7 @@ export function planYear(EVENTS, DECS) {
   const used = new Set(S.recent.slice(-10));
   const ts = []; for (let i = 0; i < n; i++) ts.push(0.08 + (i + rnd() * 0.8) / n * 0.86);
   for (const at of ts) { const ev = chooseEvent(EVENTS, used); if (ev) { used.add(ev.id); queue(at, 'ev', ev.id); } }
-  const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
+  const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && (!d.t || d.t.includes(S.cur)) && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
   // priorité : décisions jamais vues, puis famille, puis le reste ; un peu de hasard pour ne pas figer l'ordre
   const nDec = id => (S.decisions || []).filter(x => x.id === id).length;
   const FAM = ['kid', 'educ', 'wedding', 'parent_old', 'sibling_help', 'ipv_leave', 'care', 'surprise', 'dettes', 'chomage', 'apres_cyclone', 'schquit', 'crime', 'moral', 'alcquit', 'gambquit', 'noschool', 'bande', 'garde', 'distance', 'symptome', 'recomposee'];
@@ -398,7 +408,7 @@ export function finances() {
     S.stats.maxIncome = Math.max(S.stats.maxIncome, S.income);
   } else if (S.retired) { S.income = S.pension; }
   else S.income = a >= 18 ? incomeAt(c, 0.5) * 0.3 : 0; // RSA + aides ≈ 30 % du salaire médian
-  S.famIncome = Math.max(incomeAt(c, 0.5) * 0.45, incomeAt(c, S.famPct) * ((S.fam.dad.alive && !S.fam.dad.absent ? 1 : 0.55) + (S.fam.mom.alive ? 0 : -0.3)));
+  S.famIncome = famIncomeCalc(c); if (a < 18) S.famPct = clamp(pctOfIncome(c, S.famIncome), 0.03, 0.97);
   if (a < 18) { S.money = 0; S.debt = 0; return; }
   // ménage : revenu du conjoint (≈ 70 % du tien s'il travaille), enfants à charge
   const ptInc = S.fam.partner && S.fam.partner.alive && chance(0.65) ? S.income * 0.7 : 0;
@@ -493,6 +503,7 @@ export function endYear(hooks) {
 }
 
 export function retire(c, how) {
+  if (!c || typeof c !== 'object') { how = c; c = C(); }
   S.retired = true; const a = S.age;
   const yrs = S.stats.formalYears || 0; const base = S.stats.lastFormalIncome || S.income || 0;
   // taux ≈ 50 % du dernier salaire pour une carrière complète (42 ans), décote avant 67, plancher ASPA (≈ 1 035 €/mois ≈ 50 % du salaire médian)
@@ -505,7 +516,7 @@ function parentDeath(c, who) {
   const a = S.age; const P = S.fam[who];
   eff({ h: a < 18 ? -12 : -8, so: a < 18 ? -5 : -3 });
   if (a < 18) { S.famPct = clamp(S.famPct - (who === 'dad' && !P.absent ? 0.2 : 0.15), 0.03, 0.97); if (!S.fam.mom.alive && (!S.fam.dad.alive || S.fam.dad.absent)) S.flags.orphan = 1; }
-  if (a >= 25 && chance(0.5)) { const h = incomeAt(c, S.famPct) * (S.flags.houseHome || c.id !== 'DIA' ? 1.5 : 0.8); S.money += h; S.flags.inherit = (S.flags.inherit || 0) + h; }
+  if (a >= 25 && !P.absent && chance(0.5)) { const h = incomeAt(c, S.famPct) * (S.flags.houseHome || c.id !== 'DIA' ? 1.5 : 0.8); S.money += h; S.flags.inherit = (S.flags.inherit || 0) + h; } // un père absent ne laisse rien, ou presque
   S.flags.parentDiedY = a;
 }
 function parentYear(c, a) {
@@ -516,7 +527,7 @@ function parentYear(c, a) {
     const pa = P.age; P.conds = P.conds || {};
     // emploi : perte selon le territoire, retour selon le taux d'emploi
     if (WORKING(P.job) && pa < 62 && !JOB_PUB[P.job] && P.job !== 'bigowner' && chance(0.025 * (c.unemp / 10))) { P.job = 'seeking'; P.lostAt = a; if (kidHome) { eff({ h: -4, so: -1 }); S.famPct = clamp(S.famPct - 0.12, 0.03, 0.97); } out.push({ t: `${nm} perd son travail.${kidHome ? ' À la maison, on compte.' : ''}`, k: 'bad', f: a < 18 && c.id !== 'DIA' ? `Taux d’emploi ${c.article} : ${c.empRate} %, contre 69 % en Hexagone (INSEE)` : null }); }
-    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${jobName(P.job, c)}.`, k: 'good' }); }
+    else if (P.job === 'seeking' && pa < 60 && chance(0.25 * (c.empRate / 60))) { P.job = parentJob(c, Math.min(S.q, 3), who === 'mom' ? 'F' : 'M'); P.pct = jobPct(P.job, Math.min(S.q, 3)); if (P.job === 'seeking' || P.job === 'homemaker' || JOB_PUB[P.job] >= 0.8 || P.job === 'bigowner') P.job = pick(['informal', 'shop', 'construct', 'domestic', 'driver', 'hotel'].filter(j => !(c.id === 'DIA' && j === 'hotel') && !(who === 'dad' && j === 'domestic'))); if (kidHome) { eff({ h: 3 }); S.famPct = clamp(S.famPct + 0.1, 0.03, 0.97); } out.push({ t: `${nm} retrouve du travail : ${jobName(P.job, c)}.`, k: 'good' }); }
     // retraite
     if (pa === 64 && WORKING(P.job)) { P.job = 'retired'; out.push({ t: `${nm} prend sa retraite.` }); }
     // maladies : mêmes prédispositions que toi, selon le territoire ; l'hérédité te suit
@@ -541,7 +552,7 @@ export function die(forced, label) {
 }
 
 // ---------- décisions ----------
-export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
+export function openDecision(DECS, id) { const d = DECS.find(x => x.id === id); if (!d) return; if (d.t && !d.t.includes(S.cur)) return; if (d.c && !d.c()) return; if (d.once && S.flags['decAt_' + d.id] != null) return; S.flags['dec_' + id + '_' + S.age] = 1; S.flags['decAt_' + id] = S.age; const choices = d.choices().filter(ch => !ch.hide); if (choices.length < 2) return; S.pending = { id, title: d.title(), text: d.text(), choices }; }
 export function choose(i) { const p = S.pending; if (!p) return; S.pending = null; S.stats.decisions++; const ch = p.choices[i]; S.flags.lastDec = { id: p.id, t: ch.t, a: S.age, title: p.title }; (S.decisions = S.decisions || []).push({ id: p.id, t: ch.t, a: S.age, title: p.title, auto: !!S.auto }); const r = ch.run(); if (r && r !== 'Pas maintenant.') { if (typeof r === 'string') log(r, 'dec'); else log(r.t, r.k || 'dec', r.f); } }
 
 // ---------- résumé ----------
