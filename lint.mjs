@@ -75,6 +75,8 @@ const RULES = [
   { id: 'mass_no_rel', why: 'pas de messe pour une famille sans religion, musulmane ou hindoue', test: (S, l, c) => c.rel !== 'C' && /Dimanche : messe|La messe du dimanche|à Lourdes/.test(l.t) ? l.t : null },
   { id: 'gp_too_old', why: 'un grand-parent ne meurt pas après 102 ans', test: (S, l, c) => { const m = l.t.match(/^T(?:a|on) grand-(?:mère|père)[^.]* meurt à (\d+) ans/); return m && +m[1] > 102 ? l.t : null; } },
   { id: 'no_passport', why: 'pas de passeport entre un DROM et l’Hexagone', test: (S, l, c) => /passeport/.test(l.t) && !/Québec|Canada|Montréal/.test(l.t) ? l.t : null },
+  { id: 'flee_kids', why: '« Partir, avec les enfants » seulement avec des enfants', test: (S, l, c) => !c.kids && /^Partir, avec les enfants/.test(l.t) ? l.t : null },
+  { id: 'gp_far_repeat', why: 'la même scène de deuil à distance ne revient pas', test: (S, l, c) => /Le billet coûte 1 200 €, tu y vas ou tu n’y vas pas/.test(l.t) && S.log.filter(x => /Le billet coûte 1 200 €, tu y vas/.test(x.t)).length > 1 ? l.t : null },
   { id: 'house_floor', why: 'étage à louer seulement avec une maison', test: (S, l, c) => !c.house && /Un étage de plus, un locataire/.test(l.t) ? l.t : null },
   { id: 'money_units', why: 'sommes en € plausibles (pas de 0 € ni > 2 M€)', test: (S, l, c) => { const m = l.t.match(/(\d[\d  ]*) €/); if (!m) return null; const v = +m[1].replace(/[  ]/g, ''); return v > 2000000 ? l.t : null; } },
 ];
