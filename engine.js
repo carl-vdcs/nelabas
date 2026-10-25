@@ -113,6 +113,7 @@ export const JOB_LOCAL = {
   civil: { GUF: 'fonctionnaire (collectivité, préfecture, CSG)', MYT: 'fonctionnaire (collectivité, rectorat)' },
 };
 // accorde une forme inclusive « employé·e / chauffeur·se / ouvrier·ère / administratif·ve / agriculteur·rice » au sexe connu
+export function myJobName(id, c) { if (id === 'nurse' && S.flags.filiereSup !== 'sante') return S.sex === 'F' ? 'aide-soignante' : 'aide-soignant'; return jobName(id, c, S.sex); }
 export function gender(label, sex) { if (!sex || !label || !label.includes('·')) return label; return label.replace(/([\p{L}-]+)·([\p{L}]+)/gu, (m, base, suf) => { if (suf === 'ta') return sex === 'M' ? base : 'ta'; if (base === 'Compagnon' && suf === 'ne') return sex === 'M' ? base : 'Compagne'; if (sex === 'M') return base; if (suf === 'se' && /x$/.test(base)) return base.slice(0, -1) + 'se'; if (suf === 'e' || suf === 'ne' || suf === 'le' || suf === 'te') return base + suf; if (suf === 'ère') return base.replace(/er$/, 'ère'); if (suf === 'se') return base.replace(/eur$/, 'euse'); if (suf === 've') return base.replace(/f$/, 've'); if (suf === 'rice') return base.replace(/eur$/, 'rice'); if (suf === 'euse') return base.replace(/eur$/, 'euse'); if (suf === 'ienne') return base.replace(/ien$/, 'ienne'); return base + suf; }); }
 export const jobName = (id, c, sex) => gender((JOB_LOCAL[id] && c && JOB_LOCAL[id][c.id]) || (JOBS[id] ? JOBS[id].n : '—'), sex);
 export const WORKING = j => j && !['student', 'seeking', 'homemaker', 'retired'].includes(j);
@@ -283,7 +284,8 @@ export const SKINS = ['#4A2E1F', '#5A3A28', '#7A4E34', '#9A6B48', '#B98A62', '#D
 export function skinFromRoots(roots, elite) {
   if (elite === 'beke' || /béké|gros blancs|blancs-pays/.test(roots)) return chance(0.9) ? 6 : 5;
   if (/yab|zoreil|venue d’Hexagone/.test(roots)) return pick([5, 6, 6]);
-  if (/métisse|chinoise|hmong|amérindienne|brésilienne|surinamaise/.test(roots)) return pick([2, 3, 4, 4]);
+  if (/chinoise|hmong/.test(roots)) return pick([4, 5, 5]);
+  if (/métisse|amérindienne|brésilienne|surinamaise/.test(roots)) return pick([2, 3, 4, 4]);
   if (/indienne|kouli|malbar|zarab/.test(roots)) return pick([2, 3, 3, 4]);
   if (/créole guyanaise|sainte-lucienne|dominicaise/.test(roots)) return pick([0, 1, 2, 3]);
   return pick([0, 0, 1, 1, 2, 3]); // afro-descendante, kaf, bushinenguée, haïtienne, mahoraise, comorienne, malgache
@@ -304,11 +306,14 @@ export function newLife(opt = {}) {
   // origine familiale : pour la diaspora, le DROM des parents (composition INSEE 2008 : MTQ 32 %, GLP 32 %, REU 30 %, GUF 7 %, MYT 3 %, approx)
   const origin = c.id === 'DIA' ? wpick({ MTQ: 32, GLP: 32, REU: 30, GUF: 4, MYT: 2 }) : c.id;
   const oc = TBY[origin];
-  const name = makeName(oc.nm, sex);
+  const name = makeName(oc.nm, sex); let S0name = null;
   const roots = elite === 'beke' ? (c.id === 'REU' ? 'gros blancs (grands propriétaires)' : c.id === 'GLP' ? 'blancs-pays (descendants de colons)' : 'béké (descendants de colons)') : pick(ROOTS[origin] || ROOTS.GLP);
+  // patronyme cohérent avec les racines (un Mounoussamy est malbar, un Ah-Hong est chinois)
+  const RS = { chinoise: ['Ah-Hong', 'Ah-Fat', 'Thiaw-Kine', 'Ah-Kong', 'Chane-Ton', 'Ah-Sing', 'Lan-Yan'], malbar: ['Mounoussamy', 'Ramassamy', 'Virapoullé', 'Moutoussamy', 'Pajaniaye', 'Sinapin'], zarab: ['Patel', 'Ingar', 'Omarjee', 'Amode', 'Dindar', 'Moussa'], kouli: ['Sitcharn', 'Moutoussamy', 'Ramassamy', 'Ponin-Ballom', 'Mardaye', 'Coridun'], hmong: ['Lo', 'Ly', 'Vang', 'Thao', 'Yang'], 'syro-libanaise': ['Karam', 'Haddad', 'Nassar', 'Fadel'] };
+  { const k = Object.keys(RS).find(k => roots.includes(k)); if (k) S0name = name.split(' ')[0] + ' ' + pick(RS[k]); }
   let rel = relPick(oc);
   // cohérence racines → religion (zarabs réunionnais musulmans, malbars majoritairement hindous, Malgaches de Mayotte musulmans, Hmong chrétiens/animistes…)
-  if (/zarab|comorienne|mahoraise/.test(roots)) rel = 'M'; else if (/malbar/.test(roots)) rel = chance(0.7) ? 'H' : 'C'; else if (/malgache/.test(roots)) rel = chance(0.85) ? 'M' : 'C'; else if (/hmong/.test(roots)) rel = chance(0.6) ? 'C' : 'O'; else if (/chinoise/.test(roots)) rel = chance(0.6) ? 'C' : 'N'; else if (/yab|zoreil|béké|blancs/.test(roots) && rel === 'H') rel = 'C'; else if (rel === 'M' && !/comor|indienne|kouli/.test(roots) && c.id !== 'MYT') rel = chance(0.5) ? 'C' : 'N';
+  if (/zarab|comorienne|mahoraise/.test(roots)) rel = 'M'; else if (/malbar/.test(roots)) rel = chance(0.7) ? 'H' : 'C'; else if (/malgache/.test(roots)) rel = c.id === 'MYT' || origin === 'MYT' ? 'M' : chance(0.85) ? 'M' : 'C'; else if (/hmong/.test(roots)) rel = chance(0.6) ? 'C' : 'O'; else if (/chinoise/.test(roots)) rel = chance(0.6) ? 'C' : 'N'; else if (/yab|zoreil|béké|blancs/.test(roots) && rel === 'H') rel = 'C'; else if (rel === 'M' && !/comor|indienne|kouli/.test(roots) && c.id !== 'MYT') rel = chance(0.5) ? 'C' : 'N';
   const lt = lifeTable(c, sex);
   const mAge = Math.round(clamp(27 + (rnd() + rnd() + rnd() - 1.5) * 8 + (c.tfr - 2) * -1.5, 15, 45));
   const fAge = Math.round(clamp(mAge + 3 + (rnd() - 0.5) * 8, 17, 65));
@@ -319,7 +324,8 @@ export function newLife(opt = {}) {
   const absentP = ({ GLP: 0.42, MTQ: 0.40, GUF: 0.5, REU: 0.33, MYT: 0.3, DIA: 0.3 })[c.id] * (q <= 2 ? 1.2 : q >= 4 ? 0.7 : 1);
   const paceMin = opt.paceMin || 60;
   // parents : prénoms, métiers selon le quintile, revenu familial
-  const momName = makeName(oc.nm, 'F').split(' ')[0], dadName = makeName(oc.nm, 'M').split(' ')[0];
+  const me = (S0name || name).split(' ')[0]; let momName = makeName(oc.nm, 'F').split(' ')[0], dadName = makeName(oc.nm, 'M').split(' ')[0];
+  for (let i = 0; i < 20 && momName === me; i++) momName = makeName(oc.nm, 'F').split(' ')[0]; for (let i = 0; i < 20 && dadName === me; i++) dadName = makeName(oc.nm, 'M').split(' ')[0];
   let momJob = parentJob(c, q, 'F'), dadJob = parentJob(c, q, 'M');
   if (elite === 'beke') { dadJob = 'bigowner'; if (chance(0.5)) momJob = 'homemaker'; }
   if (elite === 'biz') { if (chance(0.7)) dadJob = 'owner'; else momJob = 'owner'; }
@@ -328,7 +334,7 @@ export function newLife(opt = {}) {
   S = {
     v: 1, phase: 'birth', paceMin, origin, roots, rel, famPct, elite, classe: elite === 'beke' ? 'famille de la plantocratie' : elite === 'biz' ? 'famille d’entrepreneurs' : elite === 'pol' ? 'famille politique' : socialClass(c, momJob, dadJob), yearSec: clamp(paceMin * 60 / Math.max(lt.e0, 60), 6, 120),
     t: 0, age: 0, speed: 1, paused: false, pending: null,
-    born: c.id, cur: c.id, sex, q, urban, name, city: urban ? pick(c.villes) : pick(c.campagne.length ? c.campagne : c.villes), bornCity: null,
+    born: c.id, cur: c.id, sex, q, urban, name: S0name || name, city: urban ? pick(c.villes) : pick(c.campagne.length ? c.campagne : c.villes), bornCity: null,
     st: { hl: clamp(80 + (q - 3) * 3 - c.u5 / 4 + ri(-6, 6), 40, 95), h: 60 + ri(-8, 8), sm: 50, so: 55 + ri(-6, 6) },
     money: 0, debt: 0, income: 0, pct: 0, job: 'student', jobY: 0,
     edu: 0, school: null, schoolY: 0, focus: null, fT: {}, focusW: {},
@@ -364,6 +370,7 @@ export function planYear(EVENTS, DECS) {
   const n = S.age < 6 ? 2 : 3;
   const used = new Set(S.recent.slice(-10));
   const ts = []; for (let i = 0; i < n; i++) ts.push(0.08 + (i + rnd() * 0.8) / n * 0.86);
+  for (const e of EVENTS) if (e.force && S.age >= e.a[0] && S.age <= e.a[1] && (!e.t || (!S.away && e.t.includes(S.cur)))) { used.add(e.id); queue(0.04 + rnd() * 0.5, 'ev', e.id); }
   for (const at of ts) { const ev = chooseEvent(EVENTS, used); if (ev) { used.add(ev.id); queue(at, 'ev', ev.id); } }
   const decs = DECS.filter(d => S.age >= d.a[0] && S.age <= d.a[1] && (!d.t || (!S.away && d.t.includes(S.cur))) && !(d.once && S.flags['decAt_' + d.id] != null) && (!d.c || d.c()) && !S.flags['dec_' + d.id + '_' + S.age] && (!d.gap || (S.flags['decAt_' + d.id] == null || S.age - S.flags['decAt_' + d.id] >= d.gap)) && (d.w == null || chance(d.w)));
   // priorité : décisions jamais vues, puis famille, puis le reste ; un peu de hasard pour ne pas figer l'ordre
@@ -397,7 +404,7 @@ export function fireEvent(EVENTS, id) { const ev = EVENTS.find(x => x.id === id)
 // variantes : évite de répéter la même phrase d'un événement à variantes
 export function varied(key, arr) { const seen = S.flags['var_' + key] || []; const fresh = arr.filter(x => !seen.includes(x)); const pickFrom = fresh.length ? fresh : arr; const v = pickFrom[Math.floor(rnd() * pickFrom.length)]; S.flags['var_' + key] = fresh.length ? [...seen, v] : [v]; return v; }
 export function eff(e) { for (const k in e) if (S.st[k] != null) S.st[k] = clamp(S.st[k] + e[k], 0, 100); }
-export function resolveText(t, sex) { if (!t) return t; t = gender(t, sex || S.sex); t = t.replace(/« papa » ou « manman »/g, (sex || S.sex) === 'F' ? '« manman »' : '« papa »'); if ((sex || S.sex) === 'F') t = t.replace(/\bTrésorier\b/g, 'Trésorière'); return t.replace(/\b(de|De) ([AEIOUÉÈÊÀÂÎÔÛ][\p{L}-]+|achards|ylang)/gu, (m, de, w) => (de === 'De' ? 'D’' : 'd’') + w); }
+export function resolveText(t, sex) { if (!t) return t; t = gender(t, sex || S.sex); t = t.replace(/« papa » ou « manman »/g, (sex || S.sex) === 'F' ? '« manman »' : '« papa »'); if ((sex || S.sex) === 'F') t = t.replace(/\bTrésorier\b/g, 'Trésorière'); t = t.replace(/(^|[\s(])à Les /g, '$1aux ').replace(/(^|[\s(])à Le /g, '$1au ').replace(/(^|[\s(])à les /g, '$1aux ').replace(/(^|[\s(])à le /g, '$1au ').replace(/\bde Les /g, 'des ').replace(/\bde Le /g, 'du ').replace(/\bde les /g, 'des ').replace(/\bde le /g, 'du '); return t.replace(/\b(de|De) ([AEIOUÉÈÊÀÂÎÔÛ][\p{L}-]+|achards|ylang|homicide)/gu, (m, de, w) => (de === 'De' ? 'D’' : 'd’') + w); }
 export function log(t, k = 'ev', f) { t = resolveText(t); f = resolveText(f); const item = { a: S.age, t, k, f }; S.log.push(item); if (f) S.facts.push({ a: S.age, f }); return item; }
 
 // tick : dtSec de temps réel
@@ -502,7 +509,7 @@ export function deathProb() {
   // correction résiduelle de calibrage : la variance individuelle (santé, revenu, tabac) épaissit la queue des très grands âges ;
   // on la compense après 75 ans pour retrouver la part de survivants à 95 ans de la table INSEE (contrôlé par tests/calib.mjs)
   const MY = 0.8, MO = 1.5;
-  m *= (a < 75 ? MY : MY + (MO - MY) * Math.min(1, (a - 75) / 20)) * ({ REU: 1.12, GUF: 1.06, DIA: 0.97 }[c.id] || 1);
+  m *= (a < 75 ? MY : MY + (MO - MY) * Math.min(1, (a - 75) / 20)) * ({ REU: 1.12, GUF: 1.06, DIA: 1.0 }[c.id] || 1);
   return 1 - Math.pow(1 - q, clamp(m, 0.25, 6));
 }
 
@@ -525,7 +532,7 @@ export function endYear(hooks) {
   const famEv = parentYear(c, a); if (famEv.length) hooks.onFamily(famEv);
   if (S.fam.mom.alive) { S.fam.mom.age++; if (chance(lifeTable(c, 'F').q[Math.min(110, S.fam.mom.age)] * (S.fam.mom.conds && Object.keys(S.fam.mom.conds).length ? 1.6 : 1.1))) { S.fam.mom.alive = false; parentDeath(c, 'mom'); hooks.onParentDeath('mom'); } }
   if (S.fam.dad.alive) { S.fam.dad.age++; if (chance(lifeTable(c, 'M').q[Math.min(110, S.fam.dad.age)] * (S.fam.dad.conds && Object.keys(S.fam.dad.conds).length ? 1.6 : 1.1))) { S.fam.dad.alive = false; parentDeath(c, 'dad'); hooks.onParentDeath('dad'); } }
-  if (S.fam.partner && S.fam.partner.alive) { S.fam.partner.age++; if (chance(lifeTable(c, S.fam.partner.sex).q[Math.min(110, S.fam.partner.age)])) { S.fam.partner.alive = false; hooks.onPartnerDeath(); } }
+  if (S.fam.partner && S.fam.partner.alive) { S.fam.partner.age++; if (chance(lifeTable(c, S.fam.partner.sex).q[Math.min(110, S.fam.partner.age)])) { S.fam.partner.alive = false; if (S.home && S.home.with === 'partner') S.home = { with: S.flags.house ? 'own' : 'alone', since: S.age }; hooks.onPartnerDeath(); } }
   for (const k of S.fam.kids) if (k.alive) { k.age++; }
   // retraite : décidée par le joueur (décision 'retraite') ; à 70 ans, c'est automatique
   if (!S.retired && a >= (S.flags.retireAt || 70) && WORKING(S.job)) retire(c, 'auto');
@@ -545,7 +552,8 @@ export function retire(c, how) {
   let pension = base * clamp(0.5 * yrs / 42, 0, 0.6) * (how === 'early' ? 0.85 : 1);
   const aspa = incomeAt(c, 0.5) * 0.5; S.flags.aspa = pension < aspa; pension = Math.max(pension, aspa);
   S.pension = pension; S.flags.retiredAt = a; S.flags.mainJob = S.flags.mainJob || S.job; S.job = 'retired';
-  log(S.flags.aspa ? `Retraite à ${a} ans. Une carrière hachée, non déclarée en partie : tu touches le minimum vieillesse.` : `Retraite à ${a} ans, ${Math.round(0.5 * clamp(yrs / 42, 0, 1.2) * 100)} % de ton dernier salaire.`, S.flags.aspa ? 'bad' : 'ev', S.flags.aspa && c.id !== 'DIA' ? 'Dans les DROM, la part des retraités au minimum vieillesse (ASPA) est 3 à 4 fois plus élevée qu’en Hexagone, héritage du travail informel (DREES, approx)' : null);
+  const selfJ = ['owner', 'bigowner', 'informal', 'farmer', 'vendor', 'fisher'].includes(S.flags.lastJob || S.job); const hadInformal = (S.stats.jobs || []).includes('informal');
+  log(S.flags.aspa ? `Retraite à ${a} ans. ${hadInformal ? 'Une carrière hachée, non déclarée en partie' : yrs < 25 ? `${yrs} ans de cotisations seulement` : 'Des petits salaires'} : tu touches le minimum vieillesse.` : `Retraite à ${a} ans, ${Math.round(0.5 * clamp(yrs / 42, 0, 1.2) * 100)} % de ${selfJ ? 'tes revenus déclarés' : 'ton dernier salaire'}.`, S.flags.aspa ? 'bad' : 'ev', S.flags.aspa && c.id !== 'DIA' ? 'Dans les DROM, la part des retraités au minimum vieillesse (ASPA) est 3 à 4 fois plus élevée qu’en Hexagone, héritage du travail informel (DREES, approx)' : null);
 }
 function parentDeath(c, who) {
   const a = S.age; const P = S.fam[who];
@@ -576,13 +584,16 @@ function parentYear(c, a) {
   // séparation des parents
   if (kidHome && F.mom.alive && F.dad.alive && !F.dad.absent && !F.sep && a >= 2 && chance(0.03)) { F.sep = 1; F.dad.absent = true; eff({ h: -6, so: -3 }); S.famPct = clamp(S.famPct - 0.15, 0.03, 0.97); out.push({ t: 'Tes parents se séparent. Ton père part. Il passe le dimanche, puis moins.', k: 'bad', f: c.id === 'DIA' ? null : `Familles monoparentales ${c.article} : ${({ GLP: '42 %', MTQ: '40 %', GUF: '50 %', REU: '33 %', MYT: '30 %' })[c.id] || 'plus d’un tiers'} des familles avec enfants, une mère seule le plus souvent (INSEE, approx)` }); }
   // vieillesse et dépendance : tu deviens aidant·e
-  for (const who of ['mom', 'dad']) { const P = F[who]; if (!P.alive || (who === 'dad' && P.absent)) continue; if (P.age >= 80 && !P.dep && !S.flags.ehpad && chance(0.08)) { P.dep = 1; if (S.cur === S.born || S.born === 'DIA') S.flags.carer = 1; eff({ h: -3, hl: -2, so: 2 }); out.push({ t: `${who === 'mom' ? 'Ta mère' : 'Ton père'} ne peut plus rester seul${who === 'mom' ? 'e' : ''}. ${S.cur !== S.born && S.born !== 'DIA' ? (S.cur === 'DIA' || S.away ? 'Tu es à 7 000 km.' : 'Tu es à des heures d’avion.') + ' La famille gère, tu paies.' : S.flags.carer ? 'Tu es là, déjà.' : 'Tu passes tous les jours.'}`, k: 'bad', f: c.id === 'DIA' ? null : `Les places en EHPAD sont deux fois plus rares dans les DROM qu’en Hexagone ; la prise en charge des aînés repose sur la famille (DREES, approx)` }); } }
+  for (const who of ['mom', 'dad']) { const P = F[who]; if (!P.alive || (who === 'dad' && P.absent)) continue; if (P.age >= 80 && !P.dep && !S.flags.ehpad && chance(0.08)) { P.dep = 1; if (S.flags.carer) continue; if (S.flags.sibCare) { out.push({ t: `${who === 'mom' ? 'Ta mère' : 'Ton père'} ne peut plus rester seul${who === 'mom' ? 'e' : ''}. La fratrie s’organise sans toi.`, k: 'bad' }); continue; } if (S.cur === S.born || S.born === 'DIA') S.flags.carer = 1; eff({ h: -3, hl: -2, so: 2 }); out.push({ t: `${who === 'mom' ? 'Ta mère' : 'Ton père'} ne peut plus rester seul${who === 'mom' ? 'e' : ''}. ${S.cur !== S.born && S.born !== 'DIA' ? (S.cur === 'DIA' || S.away ? 'Tu es à 7 000 km.' : 'Tu es à des heures d’avion.') + ' La famille gère, tu paies.' : S.flags.carer ? 'Tu es là, déjà.' : 'Tu passes tous les jours.'}`, k: 'bad', f: c.id === 'DIA' ? null : `Les places en EHPAD sont deux fois plus rares dans les DROM qu’en Hexagone ; la prise en charge des aînés repose sur la famille (DREES, approx)` }); } }
   return out;
 }
 export function die(forced, label) {
   const c = C();
   const k = forced || pickCause(c, S.age, S.sex, S);
   S.deathAt = { age: S.age, cause: k, label: label || CAUSE[k] || k, where: S.cur, city: S.city };
+  // une mort annoncée par le récit : la démence et le diabète ne tombent pas du ciel
+  if (k === 'dem' && !S.log.some(l => /mots|prénoms|oublies|mémoire/.test(l.t))) log('Depuis deux ou trois ans, les mots s’en vont, puis les prénoms, puis les visages.', 'bad');
+  if (k === 'dia' && !S.conds.dia && !S.log.some(l => /diabète|diabétique/.test(l.t))) log('Le diabète, découvert tard, a fait son chemin en silence.', 'bad');
   S.phase = 'dead'; S.queue = []; S.pending = null;
 }
 
@@ -596,7 +607,7 @@ export function summary() {
   const c = TBY[S.born], cur = TBY[S.cur];
   const years = S.years;
   const happiest = years.length ? years.reduce((b, y) => y.h > b.h ? y : b, years[0]) : null;
-  const edu = (S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['sans diplôme', 'collège', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.edu]) || '';
+  const sup4 = S.flags.bts ? 'BTS' : S.flags.filiereSup === 'sante' ? 'diplôme d’infirmier·ère (IFSI)' : S.flags.uniLen === 2 ? 'bac+2' : 'licence'; const edu = (S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['sans diplôme', 'collège', 'brevet', S.flags.daeu ? 'DAEU (équivalent bac)' : 'bac', sup4, S.flags.grande ? 'grande école (bac+5)' : 'master (bac+5)'][S.edu]) || '';
   const work = {}; for (const y of years) if (y.inc > 0) work[y.cur] = (work[y.cur] || 0) + 1;
-  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.lastJob || S.flags.mainJob || S.job, married: !!(S.fam.married && S.fam.partner && S.fam.partner.alive), widow: !!(S.fam.partner && !S.fam.partner.alive), kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
+  return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.lastJob || S.flags.mainJob || S.job, married: !!(S.fam.married && S.fam.partner && S.fam.partner.alive), widow: !!(S.fam.partner && !S.fam.partner.alive), sep: !S.fam.partner && (S.flags.exNames || []).filter(Boolean).length > 0, couple: !!(S.fam.partner && S.fam.partner.alive && !S.fam.married), kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
 }

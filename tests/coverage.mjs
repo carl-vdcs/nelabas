@@ -7,7 +7,7 @@ const REQ = { // id d'événement ou de décision → part minimale des vies (n�
   MTQ: { chlor_garden: 0.5, chlor_blood: 0.3, sargasse: 0.4, strike2009: 0.3, vc2024: 0.2, ag_pelee: 0.15, ag_beke: 0.15, ag_bumidom: 0.15, dengue: 0.4, cyclone: 0.25, fun_carnaval: 0.6, fun_nwel: 0.6, price_shock: 0.6, ag_sara: 0.3, lycee15: 0.75 },
   GUF: { gf_fleuve: 0.1, gf_csg: 0.3, gf_orpaillage: 0.15, gf_2017: 0.2, gf_paludisme: 0.15, gf_haiti: 0.15, gf_homicide: 0.2, kid_water: 0.3, dengue: 0.35, fun_carnaval: 0.5, price_shock: 0.6, violence: 0.2, lycee15: 0.6 },
   REU: { re_chik: 0.3, re_belal: 0.2, re_requin: 0.15, re_malbar: 0.1, re_kaf: 0.15, re_dodo: 0.15, fun_pique: 0.6, dengue: 0.3, cyclone: 0.3, price_shock: 0.6, boire: 0.25, lycee15: 0.7 },
-  MYT: { my_banga: 0.3, my_rotation: 0.3, my_droit_sol: 0.2, my_decasage: 0.2, my_kwassa: 0.2, my_chido: 0.3, my_insecurite: 0.4, my_mariage: 0.2, kid_water: 0.5, fun_voule: 0.5, price_shock: 0.5, noschool: 0.15, lycee15: 0.5 },
+  MYT: { my_banga: 0.3, my_rotation: 0.3, my_droit_sol: 0.1, my_decasage: 0.2, my_kwassa: 0.2, my_chido: 0.3, my_insecurite: 0.4, my_mariage: 0.2, kid_water: 0.5, fun_voule: 0.5, price_shock: 0.5, noschool: 0.15, lycee15: 0.5 },
   DIA: { dia_cite: 0.3, dia_testing: 0.15, dia_culture: 0.5, dia_kid_lang: 0.3, mamie_far: 0.5, logement_discrim: 0.2, fun_valise: 0.2, controle_facies: 0.15, lycee15: 0.8 }, // accent/homesick/ticket concernent ceux qui ont migré adultes (famLà), pas les natifs
 };
 const N = +process.argv[2] || 600; const seen = {}, lives = {};

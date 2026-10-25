@@ -330,8 +330,8 @@ function renderFiche() {
     <dt>Milieu</dt><dd>${esc(S.classe)} · ${['les 20 % les plus modestes', 'les 20 % modestes', 'les 20 % du milieu', 'les 20 % aisés', 'les 20 % les plus aisés'][S.q - 1]}</dd>
     <dt>Études</dt><dd>${(S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['pas encore à l’école', 'école', 'brevet', 'bac', 'licence, BTS, IFSI', 'bac+5 (master, école)'][S.school ? Math.max(0, S.edu) : S.edu]) || '—'}${S.school ? ' (en cours)' : ''}</dd>
   </dl><h4>Famille</h4><dl>
-    <dt>Mère</dt><dd>${esc(m.name)} · ${m.alive ? m.age + ' ans · ' + J(m.job) : '† ' + m.age + ' ans'}</dd>
-    <dt>Père</dt><dd>${d.absent ? 'absent' : esc(d.name) + ' · ' + (d.alive ? d.age + ' ans · ' + J(d.job) : '† ' + d.age + ' ans')}</dd>
+    <dt>Mère</dt><dd>${esc(m.name)} · ${m.alive ? m.age + ' ans · ' + (S.flags.ehpad ? 'en EHPAD' : J(m.job, 'F')) : '† ' + m.age + ' ans'}</dd>
+    <dt>Père</dt><dd>${d.absent && !S.fam.sep ? 'absent' : esc(d.name) + ' · ' + (d.alive ? d.age + ' ans · ' + (S.fam.sep ? 'parti · ' : '') + J(d.job, 'M') : '† ' + d.age + ' ans')}</dd>
     <dt>Frères et sœurs</dt><dd>${sibs}</dd>
     ${S.fam.partner ? `<dt>${E.gender(S.fam.married ? 'Conjoint·e' : 'Compagnon·ne', S.fam.partner.sex)}</dt><dd>${esc(S.fam.partner.name)} · ${S.fam.partner.alive ? S.fam.partner.age + ' ans' : '†'}</dd>` : ''}
     ${kids.length ? `<dt>Enfants</dt><dd>${kids.map(k => esc(k.name) + ' (' + k.age + ')' + (k.far ? ' · en Hexagone' : '')).join(', ')}</dd>` : ''}
@@ -496,8 +496,8 @@ function showDeath() {
       <dt>Racines</dt><dd>${esc(s.roots)} · ${esc(s.rel)}</dd>
       <dt>Milieu d’origine</dt><dd>${esc(s.classe)}</dd>
       <dt>Études</dt><dd>${s.edu}</dd>
-      <dt>Travail</dt><dd>${E.jobName(s.job, s.died || c)}</dd>
-      <dt>Famille</dt><dd>${s.married ? E.gender('marié·e', s.sex) : s.widow ? E.gender('veuf·ve', s.sex) : 'célibataire'}${s.kids ? `, ${s.kids} enfant${s.kids > 1 ? 's' : ''}` : ''}</dd>
+      <dt>Travail</dt><dd>${E.myJobName(s.job, s.died || c)}</dd>
+      <dt>Famille</dt><dd>${s.married ? E.gender('marié·e', s.sex) : s.widow ? E.gender('veuf·ve', s.sex) : s.couple ? 'en couple' : s.sep ? E.gender('séparé·e', s.sex) : 'célibataire'}${s.kids ? `, ${s.kids} enfant${s.kids > 1 ? 's' : ''}` : ''}</dd>
       ${s.mig ? `<dt>Départ</dt><dd>en Hexagone à ${S.migY} ans${s.died.id !== 'DIA' ? ', puis retour' : ''}${s.remit ? ` · ${Math.round(E.eurMois(E.TBY.DIA, s.remit) * 12).toLocaleString('fr')} € envoyés au pays` : ''}</dd>` : ''}
       ${s.chlor ? `<dt>Chlordécone</dt><dd>présent dans le sang${S.flags.chlorHigh ? ', au-dessus du seuil' : ''}</dd>` : ''}
       ${s.conds.length ? `<dt>Santé</dt><dd>${s.conds.map(k => ({ dia: 'diabète', htn: 'hypertension', can: 'cancer', kid: 'insuffisance rénale', scd: 'drépanocytose', endo: 'endométriose', fib: 'fibromes' })[k] || k).join(', ')}</dd>` : ''}
