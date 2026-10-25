@@ -499,7 +499,10 @@ export function deathProb() {
   if (c.doc < 150) m *= 1.05;
   if (a >= 85) m = Math.pow(m, clamp(1 - (a - 85) / 20, 0.3, 1));
   // les indicateurs du territoire (pauvreté, soins, diabète) sont déjà dans le/im : on recentre m autour de 1
-  m *= 0.8 * ({ REU: 1.12, GUF: 1.04, DIA: 1.03 }[c.id] || 1); // correction résiduelle de calibrage (rapport qualité du 2026-10-23)
+  // correction résiduelle de calibrage : la variance individuelle (santé, revenu, tabac) épaissit la queue des très grands âges ;
+  // on la compense après 75 ans pour retrouver la part de survivants à 95 ans de la table INSEE (contrôlé par tests/calib.mjs)
+  const MY = 0.8, MO = 1.5;
+  m *= (a < 75 ? MY : MY + (MO - MY) * Math.min(1, (a - 75) / 20)) * ({ REU: 1.12, GUF: 1.06, DIA: 0.97 }[c.id] || 1);
   return 1 - Math.pow(1 - q, clamp(m, 0.25, 6));
 }
 

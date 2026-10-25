@@ -15,6 +15,8 @@ for (let i = 0; i < N; i++) {
 }
 let fail = 0;
 for (const t of TERRITORIES) { const a = by[t.id] || []; if (a.length < 20) { console.log(`· ${t.id} n=${a.length} (trop peu pour juger)`); continue; } const m = a.reduce((x, y) => x + y, 0) / a.length; const d = m - t.le; const ok = Math.abs(d) <= 3.5 + (a.length < 80 ? 1.5 : 0); if (!ok) fail++; console.log(`${ok ? '✓' : '✗'} ${t.id} n=${String(a.length).padStart(3)} décès moyen ${m.toFixed(1)} vs espérance ${t.le} (${d >= 0 ? '+' : ''}${d.toFixed(1)})`); }
+// queue des très grands âges : la part de décès à 95 ans et plus ne doit pas dépasser nettement celle de la table INSEE
+for (const t of TERRITORIES) { const a = by[t.id] || []; if (a.length < 60) continue; let tg = 0; for (const x of ['F', 'M']) { const q = E.lifeTable(t, x).q; let l = 1; for (let k = 0; k < 95; k++) l *= 1 - q[k]; tg += l / 2; } const p = a.filter(x => x >= 95).length / a.length; const ok = p <= tg * 1.8 + 0.05; if (!ok) fail++; console.log(`${ok ? '✓' : '✗'} ${t.id} décès à 95 ans et plus : ${(p * 100).toFixed(0)} % (table : ${(tg * 100).toFixed(0)} %)`); }
 const md = decs.reduce((x, y) => x + y, 0) / Math.max(1, decs.length); const okd = md >= 15 && md <= 60; if (!okd) fail++;
 console.log(`${okd ? '✓' : '✗'} décisions par vie adulte : ${md.toFixed(1)}`); console.log(`${nan ? '✗' : '✓'} NaN : ${nan}`); if (nan) fail++;
 console.log(`\n${N} vies · ${fail} contrôle(s) en échec`); process.exit(fail ? 1 : 0);
