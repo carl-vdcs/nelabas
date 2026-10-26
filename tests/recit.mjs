@@ -3,9 +3,9 @@ import * as E from '../engine.js';
 import { EVENTS, DECS } from '../events.js';
 export function playLife(seed, terr) {
   E.seed(seed); const S = E.newLife(terr ? { territory: terr } : {}); S.phase = 'life'; S.auto = true;
-  const hooks = { fire(e) { if (e.type === 'ev') E.fireEvent(EVENTS, e.id); else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { const i = Math.floor(E.rnd() * S.pending.choices.length); const ch = S.pending.choices[i]; S.log.push({ a: S.age, t: `${S.pending.title} — choix : « ${ch.t} »`, k: 'dec' }); E.choose(i); } } }, endYear() { E.endYear(hooks); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); },
+  const hooks = { fire(e) { if (e.type === 'ev') E.fireEvent(EVENTS, e.id); else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { const i = E.autoChoose(S.pending); const ch = S.pending.choices[i]; S.log.push({ a: S.age, t: `${S.pending.title} — choix : « ${ch.t} »`, k: 'dec' }); E.choose(i); } } }, endYear() { E.endYear(hooks); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); },
     onParentDeath(w) { E.log(w === 'mom' ? 'Ta mère meurt.' : S.fam.dad.absent && !S.fam.sep ? 'Tu apprends que ton père est mort. Tu ne l’as pas connu.' : S.fam.sep ? 'Ton père meurt. Vous ne vous parliez plus beaucoup.' : 'Ton père meurt.', 'loss'); }, onPartnerDeath() { E.log(`${S.fam.partner.name} meurt.`, 'loss'); }, onFamily(items) { for (const it of items) E.log(it.t, it.k, it.f); } };
-  E.planYear(EVENTS, DECS); let g = 0; while (S.phase === 'life' && g++ < 200000) { E.tick(S.yearSec / 20, hooks); if (S.pending) { const i = Math.floor(E.rnd() * S.pending.choices.length); E.choose(i); } }
+  E.planYear(EVENTS, DECS); let g = 0; while (S.phase === 'life' && g++ < 200000) { E.tick(S.yearSec / 20, hooks); if (S.pending) { const i = E.autoChoose(S.pending); E.choose(i); } }
   return S;
 }
 export function recit(S) {

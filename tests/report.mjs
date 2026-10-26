@@ -5,8 +5,8 @@ import { TERRITORIES } from '../data.js';
 const N = +process.argv[2] || 600; const ev = {}, dc = {}, perT = {}; let lives = 0;
 for (let i = 0; i < N; i++) {
   const S = E.newLife(); S.phase = 'life'; S.auto = true; lives++;
-  const hooks = { fire(e) { if (e.type === 'ev') { if (E.fireEvent(EVENTS, e.id)) ev[e.id] = (ev[e.id] || 0) + 1; } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { dc[e.id] = (dc[e.id] || 0) + 1; E.choose(Math.floor(E.rnd() * S.pending.choices.length)); } } }, endYear() { E.endYear(hooks); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); }, onParentDeath() {}, onPartnerDeath() {}, onFamily() {} };
-  E.planYear(EVENTS, DECS); let g = 0; while (S.phase === 'life' && g++ < 200000) { E.tick(S.yearSec / 20, hooks); if (S.pending) E.choose(Math.floor(E.rnd() * S.pending.choices.length)); }
+  const hooks = { fire(e) { if (e.type === 'ev') { if (E.fireEvent(EVENTS, e.id)) ev[e.id] = (ev[e.id] || 0) + 1; } else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { dc[e.id] = (dc[e.id] || 0) + 1; E.choose(E.autoChoose(S.pending)); } } }, endYear() { E.endYear(hooks); }, planYear() { E.planYear(EVENTS, DECS); }, die() { E.die(); }, onParentDeath() {}, onPartnerDeath() {}, onFamily() {} };
+  E.planYear(EVENTS, DECS); let g = 0; while (S.phase === 'life' && g++ < 200000) { E.tick(S.yearSec / 20, hooks); if (S.pending) E.choose(E.autoChoose(S.pending)); }
   perT[S.born] = (perT[S.born] || 0) + 1;
 }
 const never = EVENTS.filter(e => !ev[e.id]).map(e => e.id); const neverD = DECS.filter(d => !dc[d.id]).map(d => d.id);

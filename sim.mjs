@@ -8,7 +8,7 @@ function runLife(opt = {}) {
   const hooks = {
     fire(e) {
       if (e.type === 'ev') { E.fireEvent(EVENTS, e.id); }
-      else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { const i = Math.floor(E.rnd() * S.pending.choices.length); E.choose(i); } }
+      else if (e.type === 'dec') { E.openDecision(DECS, e.id); if (S.pending) { const i = E.autoChoose(S.pending); E.choose(i); } }
     },
     endYear() { E.endYear(hooks); },
     planYear() { E.planYear(EVENTS, DECS); },
@@ -21,7 +21,7 @@ function runLife(opt = {}) {
   let guard = 0;
   while (S.phase === 'life' && guard++ < 200000) {
     E.tick(S.yearSec / 20, hooks); // 20 ticks par an
-    if (S.pending) { const i = Math.floor(E.rnd() * S.pending.choices.length); E.choose(i); }
+    if (S.pending) { const i = E.autoChoose(S.pending); E.choose(i); }
   }
   return S;
 }

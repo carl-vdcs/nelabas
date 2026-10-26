@@ -422,7 +422,7 @@ const LEAN = {
   familial: { 'rester': 2, 'rentrer': 3, 'oui': 2, 'marier': 2, 'famille': 2, 'pays': 2, 'construire': 1, 'ensemble': 1, 'aider': 1 },
   curieux: { 'partir': 2, 'étudier': 2, 'université': 1, 'musique': 2, 'plage': 1, 'vacances': 1, 'lancer': 1, 'formation': 1 },
 };
-function autoPick(p) { const L = LEAN[S.lean] || LEAN.prudent; let best = 0, bs = -1; p.choices.forEach((c, i) => { let sc = Math.random() * 1.5; const t = c.t.toLowerCase(); for (const k in L) if (t.includes(k)) sc += L[k]; if (sc > bs) { bs = sc; best = i; } }); return best; }
+function autoPick(p) { return E.autoChoose(p, LEAN[S.lean] || LEAN.prudent); }
 // ---------- feuilles ----------
 function sheet(html) { const s = $('#sheet'); s.className = 'sheet'; s.innerHTML = `<div class="box">${html}</div>`; return s; }
 function closeSheet() { $('#sheet').className = 'hidden'; $('#sheet').innerHTML = ''; }
