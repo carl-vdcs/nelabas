@@ -436,7 +436,7 @@ export function schoolYear() {
     else S.school = 'lyc';
   }
   if (a === 18 && S.school === 'lyc') { S.edu = 3; S.school = null; S.flags.bac = 1; }
-  if (S.school === 'uni') { S.schoolY++; if (S.flags.prepa && !S.flags.prepaRes) { if (S.schoolY >= 2) S.flags.prepaDone = 1; } else if (S.schoolY >= (S.flags.uniLen || 3)) { S.school = null; S.edu = Math.max(S.edu, S.flags.uniLen >= 5 || S.flags.grande ? 5 : 4); S.job = 'seeking'; S.flags.diplome = 1; S.flags.diplomeY = S.age; } }
+  if (S.school === 'uni') { S.schoolY++; if (S.flags.prepa && !S.flags.prepaRes) { if (S.schoolY >= 2) S.flags.prepaDone = 1; } else if (S.schoolY >= (S.flags.uniLen || 3)) { S.school = null; S.edu = Math.max(S.edu, S.flags.uniLen >= 5 || S.flags.grande || S.flags.master ? 5 : 4); S.job = 'seeking'; S.flags.diplome = 1; S.flags.diplomeY = S.age; } }
 }
 
 export function finances() {
@@ -517,7 +517,16 @@ export function deathProb() {
   return 1 - Math.pow(1 - q, clamp(m, 0.25, 6));
 }
 
+// un appartement acheté là où on ne vit plus est revendu (le crédit soldé avec) ; la maison au pays, elle, reste
+export function sellAwayFlat() {
+  if (!S.flags.house || !S.flags.appt || !S.flags.houseIn || S.flags.houseIn === S.cur || S.flags.autoconstr) return '';
+  const left = S.mortgage ? S.mortgage.left : 0, where = S.flags.houseCity || ''; S.money += Math.round((S.houseVal || 0) * 0.92 - left); S.debt = Math.max(0, S.debt - left); S.mortgage = null; S.houseVal = 0; S.flags.house = 0; S.flags.appt = 0; S.flags.houseIn = 0;
+  if (S.home && S.home.with === 'own') S.home = { with: S.fam.partner && S.fam.partner.alive ? 'partner' : 'alone', since: S.age };
+  return `Tu revends l’appartement${where ? ' ' + aVille(where) : ''}${left > 0 ? ', le crédit est soldé avec' : ''}.`;
+}
+
 export function endYear(hooks) {
+  sellAwayFlat();
   { const T = TBY[S.cur]; if (!S.away && S.cur !== 'DIA' && T && ![...T.villes, ...(T.campagne || [])].includes(S.city)) S.city = S.cur === S.born ? S.bornCity : T.villes[0]; if (S.home && S.home.with === 'partner' && !(S.fam.partner && S.fam.partner.alive)) S.home = { with: S.flags.house ? 'own' : 'alone', since: S.age }; }
   const c = C(), a = S.age, st = S.st;
   let tot = 0; for (const k in S.fT) tot += S.fT[k];
@@ -615,7 +624,7 @@ export function summary() {
   const c = TBY[S.born], cur = TBY[S.cur];
   const years = S.years;
   const happiest = years.length ? years.reduce((b, y) => y.h > b.h ? y : b, years[0]) : null;
-  const sup4 = S.flags.bts ? 'BTS' : S.flags.filiereSup === 'sante' ? 'diplôme d’infirmier·ère (IFSI)' : S.flags.uniLen === 2 ? 'bac+2' : 'licence'; const edu = (S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['sans diplôme', 'collège', 'brevet', S.flags.daeu ? 'DAEU (équivalent bac)' : 'bac', sup4, S.flags.grande ? 'grande école (bac+5)' : 'master (bac+5)'][S.edu]) || '';
+  const sup4 = S.flags.bts ? 'BTS' : S.flags.filiereSup === 'sante' ? 'diplôme d’infirmier·ère (IFSI)' : S.flags.uniLen === 2 && !S.flags.master ? 'bac+2' : 'licence'; const edu = (S.edu === 3 && !S.flags.bac ? 'CAP / formation qualifiante' : ['sans diplôme', 'collège', 'brevet', S.flags.daeu ? 'DAEU (équivalent bac)' : 'bac', sup4, S.flags.grande ? 'grande école (bac+5)' : 'master (bac+5)'][S.edu]) || '';
   const work = {}; for (const y of years) if (y.inc > 0) work[y.cur] = (work[y.cur] || 0) + 1;
   return { name: S.name, sex: S.sex, born: c, origin: TBY[S.origin], roots: S.roots, rel: REL_NM[S.rel], classe: S.classe, died: cur, age: S.deathAt.age, cause: S.deathAt.label, city: S.deathAt.city, bornCity: S.bornCity, edu, job: S.flags.lastJob || S.flags.mainJob || S.job, married: !!(S.fam.married && S.fam.partner && S.fam.partner.alive), widow: !!(S.fam.partner && !S.fam.partner.alive && S.fam.married), sep: !S.fam.partner && (S.flags.exNames || []).filter(Boolean).length > 0, couple: !!(S.fam.partner && S.fam.partner.alive && !S.fam.married), kids: S.fam.kids.length, happiest, maxIncome: S.stats.maxIncome, facts: S.facts, mig: S.mig, remit: S.stats.remitTotal, years, pct: S.pct, chlor: !!S.flags.chlor, conds: Object.keys(S.conds) };
 }
